@@ -14,6 +14,7 @@
     "discover": "node --no-warnings=ExperimentalWarning src/cli/discover.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "0.131.0",
     "gmgn-cli": "1.6.7"
   }
 }
