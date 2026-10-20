@@ -173,3 +173,17 @@ test('when the wallet sells, your copy sells the same share automatically', asyn
   assert.equal(h.sent[1].output_token, SOL);
   assert.equal(h.sent[1].input_amount, '400000', '40% of the 1,000,000 raw tokens the copy received');
 });
+
+test("take-profit / stop-loss from the settings sheet ride on the buy as GMGN condition orders", async () => {
+  const h = harness();
+  h.desk.setConfig({ mode: 'confirm' });
+  h.desk.watch('W', { ...watch, followSells: false, takeProfitPct: 80, stopLossPct: 35 });
+  await h.desk.tick();
+  h.feed.rows = [buyRow('b1', h.nowS())];
+  await h.desk.tick();
+  await h.desk.approve(h.desk.intents()[0].id);
+  assert.deepEqual(h.sent[0].condition_orders, [
+    { order_type: 'profit_stop', side: 'sell', price_scale: '80', sell_ratio: '100' },
+    { order_type: 'loss_stop', side: 'sell', price_scale: '35', sell_ratio: '100' },
+  ]);
+});

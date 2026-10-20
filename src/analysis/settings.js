@@ -26,7 +26,9 @@ export const usdShort = (x) => {
 };
 const median = (xs) => {
   const a = xs.filter((x) => Number.isFinite(x)).sort((p, q) => p - q);
-  return a.length ? a[Math.floor(a.length / 2)] : null;
+  if (!a.length) return null;
+  const m = Math.floor(a.length / 2);
+  return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
 };
 
 export function maxConcurrent(positions) {
@@ -194,11 +196,29 @@ export function recommendSettings(p, { capitalUsd, rate, fees, sizeUsd = null })
     why: "GMGN warns it can repeat a buy or miss a sell. On a small account one mistake costs a lot.",
   });
 
+  // The same choices in the shape the copy desk uses ("Copy this wallet" button).
+  const useTpSl = bagShare > 0.4 && tp != null;
+  const desk = {
+    sizeUsd: size,
+    minMcapUsd: mcMin,
+    maxMcapUsd: mcMax,
+    minCopyUsd: p.p25BuyUsd > 0 ? Math.round(p.p25BuyUsd) : null,
+    maxCopyUsd: p.medianBuyUsd > 0 ? Math.round(p.medianBuyUsd * 5) : null,
+    platforms: p.platforms ?? [],
+    followSells: !useTpSl,
+    takeProfitPct: useTpSl ? Math.round(tp * 100) : null,
+    stopLossPct: useTpSl ? Math.round(Math.abs(sl ?? -0.3) * 100) : null,
+    slippage: snipeHeavy ? 50 : 30,
+    priorityFeeSol: prioSol,
+    tipFeeSol: prioSol,
+    antiMev: true,
+  };
   return {
     wallet: p.wallet,
     sizeUsd: size,
     capitalUsd,
     items,
+    desk,
     warnings,
     feeCheck: { roundTripUsd: rt.totalUsd, shareOfTrade: rt.shareOfTrade, minSizeFor10PctFees: minSizeFor10 },
   };

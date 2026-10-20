@@ -11,6 +11,7 @@ import { recommendSettings } from './analysis/settings.js';
 import { rankOpportunities, CATEGORY_LABELS } from './analysis/opportunities.js';
 import { buildJinxWalletFile, writeJinxWalletFile } from './jinx/export.js';
 import { CopyDesk } from './copy/desk.js';
+import { answer as builtInAnswer } from './assistant/router.js';
 
 export const DEFAULT_USER = {
   capitalUsd: null, // null = use your live GMGN balance
@@ -213,6 +214,30 @@ export class Service {
         this.discovery = { ...this.discovery, running: false, phase: `failed: ${e.message}` };
       });
     return this.discovery;
+  }
+
+  async ask(question, ctx = {}) {
+    const q = String(question ?? '').slice(0, 600);
+    const built = await builtInAnswer(q, ctx, this).catch((e) => ({ text: `I hit a problem getting that data: ${e.message}`, evidence: [], actions: [], by: 'built-in' }));
+    if (built) return built;
+    if (this.claude) {
+      const r = await this.claude.ask(q, ctx);
+      return { ...r, evidence: [], actions: [] };
+    }
+    return {
+      text: 'I can answer these right now: the best trader for graduated coins, early momentum or sniping; who makes the most while trading only a few coins a day; what you would have made copying a wallet with a dollar amount; which coin looks strongest right now; what settings to use; why I picked one wallet over another; and what a trading word means. Free-form questions need the Claude assistant switched on.',
+      evidence: [], actions: [], by: 'built-in',
+    };
+  }
+
+  copyState() {
+    return { config: this.desk.config(), watches: this.desk.watches().map(({ seen_tx, ...w }) => w), intents: this.desk.intents(60), positions: this.desk.positions(), autoSwitch: this.env.GMGN_ALLOW_AUTOMATED_TRADES === '1' };
+  }
+
+  async copyWallet(wallet) {
+    const d = await this.walletDetail(wallet);
+    this.desk.watch(wallet, d.settings.desk);
+    return { wallet, settings: d.settings.desk, items: d.settings.items };
   }
 
   async exportJinx() {

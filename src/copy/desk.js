@@ -280,6 +280,14 @@ export class CopyDesk {
       priority_fee: String(s.priorityFeeSol ?? 0.001),
       tip_fee: String(s.tipFeeSol ?? 0.001),
     };
+    // GMGN's own take-profit / stop-loss orders ride on the buy when the settings sheet chose them
+    // (price_scale = gain % for profit_stop, drop % for loss_stop, per GMGN's swap docs).
+    if (i.side === 'buy' && s.takeProfitPct > 0 && s.stopLossPct > 0) {
+      body.condition_orders = [
+        { order_type: 'profit_stop', side: 'sell', price_scale: String(s.takeProfitPct), sell_ratio: '100' },
+        { order_type: 'loss_stop', side: 'sell', price_scale: String(s.stopLossPct), sell_ratio: '100' },
+      ];
+    }
     try {
       const res = await this.g.swap(body);
       this.setState(id, 'submitted', { quoteOut: quote.output_amount, minOut: quote.min_output_amount }, { orderId: res.order_id, txHash: res.hash });

@@ -40,6 +40,9 @@ test('settings use GMGN names, USD amounts with SOL for the GMGN screen, and kid
   assert.match(mc.value, /\$2M|\$1.9M/);
   for (const i of s.items) assert.ok(i.simple.length > 20 && i.why.length > 10, `${i.setting} needs a simple explanation and a reason`);
   assert.equal(s.items.find((i) => i.setting === 'Lightning Mode').value, 'Off');
+  assert.deepEqual([s.desk.minMcapUsd, s.desk.maxMcapUsd], [80_000, 2_000_000], 'copy desk gets the same market-cap range');
+  assert.equal(s.desk.followSells, true);
+  assert.equal(s.desk.minCopyUsd, 120);
 });
 
 test('a tiny account gets a clear warning when fees would eat the trade', () => {
@@ -51,4 +54,6 @@ test('a tiny account gets a clear warning when fees would eat the trade', () => 
 test('a wallet that leaves bags open gets take-profit / stop-loss instead of follow-selling', () => {
   const s = recommendSettings(profile({ closedCount: 6, openCount: 10 }), { capitalUsd: 100, rate, fees });
   assert.match(s.items.find((i) => i.setting === 'Selling method').value, /Take profit and stop loss/);
+  assert.equal(s.desk.takeProfitPct, 65, 'median winner of +80% and +50% is +65%');
+  assert.equal(s.desk.stopLossPct, 30);
 });
