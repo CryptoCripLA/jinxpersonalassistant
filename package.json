@@ -1,0 +1,19 @@
+{
+  "name": "jinxpersonalassistant",
+  "version": "0.1.0",
+  "description": "Personal GMGN trading intelligence: wallet discovery, copy-profit simulator, plain-English copy settings, opportunity finder and a guarded copy desk. Every amount in USD.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "start": "node --no-warnings=ExperimentalWarning src/server.js",
+    "test": "node --no-warnings=ExperimentalWarning --test \"test/**/*.test.js\"",
+    "discover": "node --no-warnings=ExperimentalWarning src/cli/discover.js"
+  },
+  "dependencies": {
+    "gmgn-cli": "1.6.7"
+  }
+}

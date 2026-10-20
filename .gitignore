@@ -1,0 +1,11 @@
+# This repository is PUBLIC. Nothing private may be committed.
+node_modules/
+data/
+.env
+.env.*
+*.db
+*.db-*
+*.pem
+*.key
+*.log
+.DS_Store
