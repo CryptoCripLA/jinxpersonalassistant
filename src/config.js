@@ -9,4 +9,6 @@ export const DB_PATH = join(DATA_DIR, 'app.db');
 export const EXPORT_DIR = join(DATA_DIR, 'exports');
 export const HOST = process.env.JPA_HOST || '127.0.0.1';
 export const PORT = Number(process.env.JPA_PORT || 8899);
-export const GMGN_PLAN = process.env.JPA_GMGN_PLAN || 'pro';
+// The owner's key answers with x-ratelimit-limit: 20 (checked 2026-10-20), which is GMGN's Plus
+// bucket. Pacing for Pro got the server's IP briefly banned. All processes on this host share it.
+export const GMGN_PLAN = process.env.JPA_GMGN_PLAN || 'plus';

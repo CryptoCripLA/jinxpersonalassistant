@@ -234,9 +234,9 @@ export class Gmgn {
     return this.call('followWallet', () => this.api.getFollowWallet(CHAIN, extra));
   }
 
-  trenches(types, filters = {}, limit = 80) {
+  trenches(types, filters = {}, limit = 80, { ttlMs = 30 * S } = {}) {
     const key = `tr:${types.join(',')}:${JSON.stringify(filters)}:${limit}`;
-    return this.call('trenches', () => this.api.getTrenches(CHAIN, types, undefined, limit, Object.keys(filters).length ? filters : undefined), { cacheKey: key, ttl: 30 * S });
+    return this.call('trenches', () => this.api.getTrenches(CHAIN, types, undefined, limit, Object.keys(filters).length ? filters : undefined), { cacheKey: key, ttl: ttlMs });
   }
 
   // GMGN sometimes wraps the list as { code, data: { rank } } (seen live for 1m and 5m).

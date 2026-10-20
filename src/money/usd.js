@@ -19,6 +19,23 @@ export function usd(x) {
   return `${sign}$${a.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+// $25 rather than $25.00 when the amount is whole; used for sizes the owner typed.
+export function usdWhole(x) {
+  if (!isNum(x)) return 'unavailable';
+  return Number.isInteger(x) ? `${x < 0 ? '-' : ''}$${Math.abs(x).toLocaleString('en-US')}` : usd(x);
+}
+
+// Market caps and other big round numbers: $400K, $1.2M.
+export const usdShort = (x) => {
+  if (!isNum(x)) return 'unavailable';
+  const a = Math.abs(x);
+  const sign = x < 0 ? '-' : '';
+  if (a >= 1e9) return `${sign}$${+(a / 1e9).toFixed(2)}B`;
+  if (a >= 1e6) return `${sign}$${+(a / 1e6).toFixed(1)}M`;
+  if (a >= 1e3) return `${sign}$${+(a / 1e3).toFixed(0)}K`;
+  return usd(x);
+};
+
 export function usdSigned(x) {
   if (!isNum(x)) return 'unavailable';
   return x > 0 ? `+${usd(x)}` : usd(x);

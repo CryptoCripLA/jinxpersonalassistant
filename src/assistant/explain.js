@@ -1,0 +1,108 @@
+// "Explain this": every button, column, chart and number in the terminal, in plain English.
+// Each entry says what it is, why it matters for catching 7x-19x+ moves, and what profitable
+// traders do with it. The UI tags elements with data-explain="<key>" and sends the key, the
+// visible label and the live value, so the answer talks about what is on screen right now.
+
+export const ELEMENTS = {
+  // ---- shell
+  'nav.pulse': { title: 'Pulse', what: 'The live board of coins: brand-new launches, coins about to graduate, coins that just graduated, and the ones with the strongest buying right now.', why: 'Explosive moves start here. Most 10x coins were under an hour old and on this board when they started running.', pros: 'They scan the "Explosive now" column, open anything with smart money arriving, and decide in seconds whether the buying is real.' },
+  'nav.wallets': { title: 'Explosive wallets', what: 'Wallets ranked by how often they catch big moves and whether you could have copied them in time.', why: 'Following the right wallet is the fastest way to be early. The ranking counts only what a follower could have kept.', pros: 'They follow a few wallets that keep entering before breakouts, and ignore wallets whose profits come from being faster than any copier.' },
+  'nav.history': { title: 'History', what: 'Real coins that went 7x or more, with the signals that showed up before, during and too late.', why: 'It shows which signals actually gave you time to get in, so you trust the right ones live.', pros: 'They study past runners to learn which early signs repeat, then wait for those signs instead of chasing green candles.' },
+  'nav.portfolio': { title: 'Portfolio', what: 'Your real GMGN wallet: what you hold, what you paid, and your realized and unrealized profit.', why: 'Realized profit is the only profit that counts. This is where you see it.', pros: 'They check open positions often and take profit into strength instead of waiting for the top.' },
+  'nav.desk': { title: 'Copy desk', what: 'Follows wallets you choose and turns their trades into your orders. Off, Ask me first, or Automatic.', why: 'It removes the delay of copying by hand, which matters when a coin moves in seconds.', pros: 'They copy only wallets whose edge survives a few seconds of delay, with a dollar limit per trade and per day.' },
+  'shell.balance': { title: 'Wallet balance', what: 'The dollars in your GMGN trading wallet right now, converted at GMGN\'s live exchange rate.', why: 'It is what you can actually trade with. With about $25 a trade it tells you how many tries you have.', pros: 'They size each trade so a string of losses cannot wipe them out before the big winner shows up.' },
+  'shell.explain': { title: 'Explain mode', what: 'When it is on, clicking anything asks me to explain it instead of pressing it.', why: 'So you can learn the terminal without accidentally buying or changing settings.', pros: 'Turn it on, click around, then turn it off to trade.' },
+  'shell.search': { title: 'Search', what: 'Paste a coin address or a wallet address to open it.', why: 'When someone shares a coin, you can check its buyers and safety in one step.', pros: 'They check who bought first and whether the creator sold before touching a shared coin.' },
+  'shell.live': { title: 'Live status', what: 'Shows whether the live feeds (GMGN lists and the pump.fun stream) are connected and when they last updated.', why: 'Stale data on a meme coin is dangerous: prices change every second.', pros: 'They never act on a board that stopped updating.' },
+
+  // ---- pulse columns and rows
+  'pulse.new': { title: 'New launches', what: 'Coins created in the last minutes, still on the Pump.fun launch curve.', why: 'The biggest multiples start here, but most new coins die. Only a few get real buyers.', pros: 'They wait for proof (smart wallets buying, buying speeding up) instead of buying every launch.' },
+  'pulse.near': { title: 'About to graduate', what: 'Coins near the end of the launch curve. At 100% they move to a real trading pool.', why: 'Graduation often brings a burst of new buyers and attention, which can start or extend a run.', pros: 'They watch how fast a coin is climbing toward graduation and whether smart money is already in.' },
+  'pulse.graduated': { title: 'Just graduated', what: 'Coins that finished the launch curve and now trade in a normal pool.', why: 'Survivors of the first stage. Some run again right after graduating; many fade.', pros: 'They buy graduated coins only when buying keeps up after graduation, not on the graduation itself.' },
+  'pulse.explosive': { title: 'Explosive now', what: 'Coins from every list with the strongest measured momentum right now: buying speed, acceleration, smart money and your explosive wallets.', why: 'This is the shortlist for 7x-19x attempts: coins already showing the signs past runners showed early.', pros: 'They open the top few, check who is buying and the risks, and act fast or move on.' },
+  'row.age': { title: 'Age', what: 'How long ago the coin was created.', why: 'Most explosive runs happen in a coin\'s first hours.', pros: 'They treat a young coin with real buyers as an opportunity and an old coin with no buyers as noise.' },
+  'row.mcap': { title: 'Market cap', what: 'What all of the coin\'s tokens are worth together: price times supply.', why: 'A 10x from $40K needs $400K; from $4M it needs $40M. Small caps move faster.', pros: 'They prefer entries at small market caps, where a 10x needs far less money to come in.' },
+  'row.buys': { title: 'Buys per minute', what: 'How many buy trades happened in the last minute, measured from GMGN\'s running totals.', why: 'A sudden jump in buys is often the first sign of a run.', pros: 'They look for buying that is speeding up, not just busy.' },
+  'row.smart': { title: 'Smart money', what: 'How many wallets GMGN tags as consistently profitable hold this coin.', why: 'Several smart wallets in early is one of the stronger signals that a coin may run.', pros: 'They care more about smart wallets joining recently than the total count.' },
+  'row.explosive': { title: 'Your explosive wallets', what: 'Wallets from your Explosive wallets list that bought this coin.', why: 'These wallets have a measured record of getting in before big moves.', pros: 'They act fastest when two or more proven wallets buy the same coin.' },
+  'row.progress': { title: 'Graduation progress', what: 'How far the coin is along its launch curve. 100% means it graduates to a trading pool.', why: 'Coins racing toward 100% often get a wave of new buyers.', pros: 'They watch the speed of the bar, not just its level.' },
+  'coin.momentum': { title: 'Momentum score', what: 'A 0-100 score from live buying speed, acceleration, smart money, your explosive wallets, graduation pull and fake-activity checks. Every point has a reason listed.', why: 'High scores mean the coin is showing the early signs past 7x+ runners showed. It is a shortlist, not a promise.', pros: 'They read the reasons and warnings, not just the number.' },
+  'coin.stage': { title: 'Stage', what: 'Ignition: buying is speeding up fast. Building: steady buying. Fading: sellers are taking over. Watching: not measured yet.', why: 'The best entries are in Ignition with real buyers; Fading is where late buyers get stuck.', pros: 'They enter on Ignition with confirmation and leave when a coin turns Fading.' },
+
+  // ---- coin view
+  'coin.chart': { title: 'Price chart', what: 'Each candle is one time block: the body shows the open and close, the thin lines the highest and lowest price.', why: 'It shows whether a move is just starting, already stretched, or turning down.', pros: 'They avoid buying after a long straight-up run and look for strength after a pause.' },
+  'chart.mode': { title: 'Price or market cap', what: 'Switches the chart between the price of one token and the whole coin\'s market cap.', why: 'Market cap makes targets easy: you can see what 7x or 10x from here would mean.', pros: 'They think in market cap: "this is $60K, the last runner topped at $1.2M".' },
+  'chart.interval': { title: 'Candle size', what: 'How much time each candle covers: 1 minute, 5 minutes, 15 minutes or 1 hour.', why: 'Short candles show the live fight between buyers and sellers; long ones show the trend.', pros: 'They use 1-minute candles to time entries and 15-minute candles to see the bigger picture.' },
+  'chart.volume': { title: 'Volume bars', what: 'How many dollars were traded in each candle.', why: 'Price moves on rising volume are more believable than moves on thin volume.', pros: 'They look for volume surging before or with a breakout.' },
+  'coin.liquidity': { title: 'Liquidity', what: 'Money sitting in the trading pool for this coin.', why: 'Low liquidity means your own sell can crash the price.', pros: 'They keep their trade small compared with the pool so they can get out.' },
+  'coin.holders': { title: 'Holders', what: 'How many wallets hold the coin.', why: 'Fast holder growth means new people are arriving, which is what drives big runs.', pros: 'They like holders rising quickly while the top 10 own a small share.' },
+  'coin.ath': { title: 'From the high', what: 'How far the price is below the coin\'s highest price so far.', why: 'A coin far under its high already ran and dumped; a coin near its high is still in its move.', pros: 'They are careful with coins that already did their 10x and are bleeding.' },
+  'coin.changes': { title: 'Price change', what: 'How much the price moved over the last 1 minute, 5 minutes and 1 hour.', why: 'It tells you whether you would be early or chasing.', pros: 'They prefer moves that are speeding up from a quiet base over coins already up 500% this hour.' },
+  'coin.safety': { title: 'Safety checks', what: 'GMGN\'s readings on rug risk, bundled wallets, insiders, bots, how much the top holders own and whether the creator sold.', why: 'Most fast pumps that end at zero show warning signs here first.', pros: 'They skip coins with heavy bundling, insiders or a creator still holding a big bag.' },
+  'tab.early': { title: 'Early buyers', what: 'The first wallets to buy this coin, in order, with the market cap they bought at, what they have done since, and whether they still hold.', why: 'It answers who knew first, whether they are still in, and whether they are selling into you.', pros: 'They get worried when the early winners start selling, and more confident when proven wallets are still holding.' },
+  'early.entry': { title: 'Entry market cap', what: 'The coin\'s market cap when this wallet first bought.', why: 'Comparing it with now shows how much of the move is already gone.', pros: 'They ask: if the early wallets bought at $5K and it is $500K now, how much room is left?' },
+  'early.multiple': { title: 'Multiple now', what: 'How many times the price has grown since this wallet bought.', why: 'It shows what the early buyers are sitting on, which is what they might sell.', pros: 'They watch big unrealized gains in a few wallets as selling pressure waiting to happen.' },
+  'early.held': { title: 'Still holding', what: 'Whether the wallet still holds its coins and how much it has sold.', why: 'Early winners selling is often the first sign a run is ending.', pros: 'They sell when the early smart wallets sell.' },
+  'tab.holders': { title: 'Top holders', what: 'The wallets that own the most of this coin right now and their share.', why: 'If a few wallets own most of it, they decide where the price goes.', pros: 'They avoid coins where one or two wallets could dump on everyone.' },
+  'tab.trades': { title: 'Live trades', what: 'Every buy and sell on this coin as it happens, from the pump.fun stream.', why: 'You can see buyers piling in or the first big sells as they happen.', pros: 'They watch for large sells from early wallets.' },
+  'coin.scenario': { title: '$25 scenario', what: 'What your trade would be worth at 2x, 3x, 7x, 10x and 19x, after every fee in and out. A SIMULATED projection, not a prediction.', why: 'It turns a multiple into dollars and shows the rise you need just to break even.', pros: 'They decide before buying what multiple they will take profit at.' },
+
+  // ---- trade panel
+  'trade.amount': { title: 'Trade amount', what: 'How many dollars to spend on this buy.', why: 'At about $25 a trade, one 10x pays for many small losses.', pros: 'They keep each trade the same size so one bad coin cannot ruin the account.' },
+  'trade.slippage': { title: 'Slippage', what: 'How far the price may move against you before the order cancels itself.', why: 'Fast coins move while your order travels. Too low and you miss the trade; too high and you buy at a bad price.', pros: 'They use more slippage on fast launch-curve coins and less on calm graduated coins.' },
+  'trade.buy': { title: 'Buy', what: 'Gets a live price from GMGN first. Nothing is bought until you press Confirm on that price.', why: 'Speed matters, but so does seeing the price before spending real money.', pros: 'They buy with a plan: the size, the target and when they will get out.' },
+  'trade.sell': { title: 'Sell', what: 'Sells 25%, 50% or 100% of the coins you hold, after showing you the dollars you would get.', why: 'Taking some profit into a run locks in real dollars while letting the rest ride.', pros: 'Many sell part at 2x-3x to get their money back and let the rest chase the big multiple.' },
+  'trade.quote': { title: 'Live quote', what: 'GMGN\'s price for this exact trade: dollars in, coins or dollars out, and the worst fill you accept. It expires after 30 seconds.', why: 'Meme coins move fast; an old price is not a real price.', pros: 'They re-quote instead of confirming a stale price.' },
+
+  // ---- wallets
+  'wallets.board': { title: 'Explosive wallet board', what: 'Wallets ranked by what a follower copying them with $25 a trade, a few seconds late and after fees, would have banked per active day.', why: 'Headline wallet profits hide whether you could have copied them. This ranking does not.', pros: 'They follow wallets with many copyable big winners, not just the biggest profit.' },
+  'wallets.found': { title: 'Big moves found', what: 'How many of the wallet\'s buys went on to 3x, 7x, 10x or 19x within 8 hours: the opportunity, not what it sold for.', why: 'It shows who repeatedly gets in before explosive moves.', pros: 'They look for wallets that find big moves again and again, not once.' },
+  'wallets.captured': { title: 'Captured', what: 'What the wallet actually sold for, as a multiple of what it paid. Kept separate from how high the coin went.', why: 'A wallet can find a 20x coin and still sell at 1.5x. Capture is what makes money.', pros: 'They follow wallets that hold winners long enough to capture a real share of the move.' },
+  'wallets.follower': { title: 'Your $25 copy', what: 'What you would have made copying each trade with $25, a few seconds late, after every fee. SIMULATED from real GMGN prices.', why: 'This is the number that matters to you, not the wallet\'s own profit.', pros: 'They judge a wallet by the copy result, not its headline.' },
+  'wallets.edge': { title: 'Edge kept', what: 'How much of the wallet\'s average return a follower would have kept after the copy delay.', why: 'Low edge kept means the wallet wins by being faster than any copier: a sniper in disguise.', pros: 'They drop wallets whose edge disappears with a few seconds of delay.' },
+  'wallets.perday': { title: 'Per active day', what: 'Average copied-trade result times the coins a day you would take (at most 3).', why: 'It puts busy and selective wallets on the same footing for your 1-3 coins a day.', pros: 'They prefer a wallet with fewer, bigger copyable winners.' },
+  'wallets.losses': { title: 'Losses', what: 'How many trades lost money and the average size of the loss.', why: 'Explosive traders lose often; what matters is that losses are small and winners are big.', pros: 'They accept many small losses for a few large wins.' },
+  'wallets.flags': { title: 'Warnings', what: 'Signs that a wallet is a bot, sells far faster than you can copy, is unloading coins it got elsewhere, or has too little history.', why: 'These wallets look great on paper and lose money for followers.', pros: 'They never copy a wallet flagged as sniper-speed or a distributor.' },
+  'wallet.last': { title: 'Recent coins', what: 'The wallet\'s recent coins: the market cap it bought at, how high the coin went, what it sold for, and what your $25 copy would have done.', why: 'You see whether its wins are repeatable and copyable.', pros: 'They check the last 10 coins before trusting any wallet.' },
+  'wallet.copy': { title: 'Copy wallet', what: 'Adds this wallet to the copy desk with settings fitted to how it trades.', why: 'Copying a proven early wallet automatically removes your reaction delay.', pros: 'They start copying with small amounts and watch the results.' },
+
+  // ---- history
+  'history.example': { title: 'Past runner', what: 'A real coin that went 7x or more, with its base, breakout and peak market caps.', why: 'Real examples show what was visible before the move and what came too late.', pros: 'They study runners to learn which early signs repeat.' },
+  'history.signal': { title: 'Signal timing', what: 'Before: the sign showed up before the price doubled. During: after the breakout but with at least 2x left. Too late: under 2x left.', why: 'Only signals that come early or during the move give you time to profit.', pros: 'They act on signals that historically came early, and ignore ones that usually come late.' },
+  'history.follower': { title: 'Follower result', what: 'What you would have made entering a few seconds after the signal and selling after a 30% drop from the high. SIMULATED on real candles; fees not included.', why: 'It shows whether a signal was actually tradable.', pros: 'They trust signals with a track record of tradable entries.' },
+
+  // ---- portfolio
+  'portfolio.holdings': { title: 'Holdings', what: 'Coins in your GMGN wallet, their value now, and what you paid. LIVE from GMGN.', why: 'Shows where your money is and how much each position is up or down.', pros: 'They take profit on winners into strength and cut coins that turned Fading.' },
+  'portfolio.realized': { title: 'Realized profit', what: 'Profit or loss you locked in by selling.', why: 'It is real money, unlike paper gains.', pros: 'They judge themselves on realized profit.' },
+  'portfolio.unrealized': { title: 'Unrealized profit', what: 'What you would gain or lose if you sold everything right now.', why: 'Paper gains on meme coins can vanish in minutes.', pros: 'They sell part of big paper gains to make them real.' },
+  'portfolio.orders': { title: 'Your orders', what: 'Every Buy and Sell you sent from this terminal and what GMGN reported back.', why: 'A sent order is not a filled order. This shows which ones went through.', pros: 'They check that every order confirmed before assuming they hold the coin.' },
+
+  // ---- labels
+  'label.historical': { title: 'HISTORICAL', what: 'Something a wallet really did on chain.', why: 'It is real, but it is their result, not yours.', pros: 'They separate what others made from what they could have made.' },
+  'label.simulated': { title: 'SIMULATED', what: 'A replay on real prices of what you would have got, with your delay and fees. Not a real trade.', why: 'It is the honest estimate of copyable profit.', pros: 'They trust simulations that include delay and fees, and nothing else.' },
+  'label.live': { title: 'LIVE', what: 'Your real money and real orders, straight from GMGN.', why: 'This is what you actually have.', pros: 'They check live numbers before every decision.' },
+  'desk.mode': { title: 'Copy desk mode', what: 'Off: only records what it would copy. Ask me first: each copy waits for your tap. Automatic: copies on its own within your limits (also needs the operator switch).', why: 'Automatic is fastest; Ask me first lets you check each coin.', pros: 'They start with Ask me first and move to Automatic only for wallets they trust.' },
+};
+
+const readers = {
+  'coin.momentum': (v) => `Right now it reads ${v}/100.`,
+  'row.mcap': (v) => `Right now it is ${v}.`,
+  'coin.scenario': () => 'The rows below show your dollars at each multiple.',
+};
+
+export function explainElement(element = {}, ctx = {}) {
+  const e = ELEMENTS[element.key];
+  if (!e) return { text: `I don't have a description for "${element.label ?? element.key ?? 'that'}" yet. Ask me about it in your own words.`, evidence: [], actions: [], by: 'built-in' };
+  const subject = ctx.coin?.symbol ? ` on ${ctx.coin.symbol}` : '';
+  const now = element.value != null && element.value !== ''
+    ? (readers[element.key]?.(element.value) ?? `Right now it shows ${element.value}.`)
+    : '';
+  return {
+    text: `${e.title}${subject}: ${e.what} ${now}`.trim(),
+    evidence: [`Why it matters for big moves: ${e.why}`, `What profitable traders do: ${e.pros}`],
+    actions: [],
+    by: 'built-in',
+  };
+}
+
+export const explainKeys = () => Object.keys(ELEMENTS);

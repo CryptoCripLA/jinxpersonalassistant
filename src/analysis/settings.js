@@ -4,7 +4,7 @@
 // (https://docs.gmgn.ai/index/gmgn-fees-settings), read 2026-10-20.
 // Shown in USD only. GMGN's own boxes take SOL, so each money item also carries
 // `gmgnInput`: the converted number for the "copy for GMGN" button, never displayed.
-import { usd, usdToSol, solToUsd, pct } from '../money/usd.js';
+import { usd, usdToSol, solToUsd, pct, usdShort } from '../money/usd.js';
 import { roundTripCosts } from '../money/fees.js';
 import { duration } from '../text/plain.js';
 
@@ -18,12 +18,7 @@ const niceCeil = (x) => {
   const p = 10 ** Math.floor(Math.log10(x));
   return Math.ceil(x / p) * p;
 };
-export const usdShort = (x) => {
-  if (x == null) return 'unavailable';
-  if (x >= 1e6) return `$${+(x / 1e6).toFixed(1)}M`;
-  if (x >= 1e3) return `$${+(x / 1e3).toFixed(0)}K`;
-  return usd(x);
-};
+export { usdShort };
 const median = (xs) => {
   const a = xs.filter((x) => Number.isFinite(x)).sort((p, q) => p - q);
   if (!a.length) return null;
