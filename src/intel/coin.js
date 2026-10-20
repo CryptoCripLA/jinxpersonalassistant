@@ -28,7 +28,11 @@ export function ratesFromInfo(p = {}) {
 
 const change = (now, then) => (now != null && then > 0 ? now / then - 1 : null);
 
-export async function coinDetail({ g, pf, token, explosive = new Map(), fees, sizeUsd = 25, nowSec = Math.floor(Date.now() / 1000), tapeRates = null, log = () => {} }) {
+// GMGN's security route reports honeypots as honeypot: 0/1 (is_honeypot is null) and carries no
+// rug ratio; the launch and trending lists do, so the live board's entry fills those in.
+const flag = (a, b) => (a === true || a === 1 || a === '1' || b === true || b === 1 || b === '1' ? true : a === false || a === 0 || b === 0 || b === false ? false : null);
+
+export async function coinDetail({ g, pf, token, explosive = new Map(), fees, sizeUsd = 25, nowSec = Math.floor(Date.now() / 1000), tapeRates = null, listItem = null, log = () => {} }) {
   const [info, security, holdersRaw] = await Promise.all([
     g.tokenInfoLive(token),
     g.tokenSecurity(token).catch(() => null),
@@ -92,15 +96,16 @@ export async function coinDetail({ g, pf, token, explosive = new Map(), fees, si
     smart_degen_count: num(tags.smart_wallets),
     renowned_count: num(tags.renowned_wallets),
     holder_count: num(info.holder_count),
-    rug_ratio: num(security?.rug_ratio),
-    is_honeypot: security?.is_honeypot,
-    is_wash_trading: security?.is_wash_trading,
+    rug_ratio: num(listItem?.rug_ratio ?? security?.rug_ratio),
+    is_honeypot: flag(security?.is_honeypot, security?.honeypot),
+    is_wash_trading: listItem?.is_wash_trading ?? security?.is_wash_trading ?? null,
     top_10_holder_rate: num(stat.top_10_holder_rate),
     bot_degen_rate: num(stat.bot_degen_rate),
     dev_team_hold_rate: num(stat.dev_team_hold_rate),
-    bundler_trader_amount_rate: num(stat.top_bundler_trader_percentage),
-    rat_trader_amount_rate: num(stat.top_rat_trader_percentage),
-    entrapment_ratio: num(stat.top_entrapment_trader_percentage),
+    bundler_trader_amount_rate: num(listItem?.bundler_trader_amount_rate ?? stat.top_bundler_trader_percentage),
+    rat_trader_amount_rate: num(listItem?.rat_trader_amount_rate ?? stat.top_rat_trader_percentage),
+    entrapment_ratio: num(listItem?.entrapment_ratio ?? stat.top_entrapment_trader_percentage),
+    suspected_insider_hold_rate: num(listItem?.suspected_insider_hold_rate),
     creator_token_status: info.dev?.creator_token_status,
   };
   const rates = tapeRates ?? ratesFromInfo(p);
@@ -140,12 +145,13 @@ export async function coinDetail({ g, pf, token, explosive = new Map(), fees, si
       volume1mUsd: num(p.volume_1m), volume5mUsd: num(p.volume_5m), volume1hUsd: num(p.volume_1h), volume24hUsd: num(p.volume_24h),
     },
     safety: {
-      rugRatio: flat.rug_ratio, honeypot: security?.is_honeypot ?? null, washTrading: security?.is_wash_trading ?? null,
+      rugRatio: flat.rug_ratio, honeypot: flat.is_honeypot, washTrading: flat.is_wash_trading,
       top10: flat.top_10_holder_rate, botRate: flat.bot_degen_rate, devTeamHold: flat.dev_team_hold_rate,
       bundlerShare: flat.bundler_trader_amount_rate, ratShare: flat.rat_trader_amount_rate, trapShare: flat.entrapment_ratio,
       sniperHold: num(stat.top70_sniper_hold_rate), freshWallets: num(stat.fresh_wallet_rate),
       devSold: info.dev?.creator_token_status === 'creator_close',
       mintRenounced: security?.renounced_mint ?? null, freezeRenounced: security?.renounced_freeze_account ?? null,
+      insiderHold: flat.suspected_insider_hold_rate,
     },
     walletTags: { smart: num(tags.smart_wallets) ?? 0, kol: num(tags.renowned_wallets) ?? 0, snipers: num(tags.sniper_wallets) ?? 0, insiders: num(tags.rat_trader_wallets) ?? 0, bundlers: num(tags.bundler_wallets) ?? 0, whales: num(tags.whale_wallets) ?? 0 },
     links: {

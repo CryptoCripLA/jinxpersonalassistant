@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.131.0",
-    "gmgn-cli": "1.6.7"
+    "gmgn-cli": "1.6.7",
+    "lightweight-charts": "5.2.1"
   }
 }

@@ -5,6 +5,10 @@ import { simulateCopy } from '../analysis/simulate.js';
 import { peakAfter, tradeOutcome, explosiveProfile, rankExplosive, walletFlags, PEAK_HORIZON_SEC } from '../analysis/explosive.js';
 import { loadProfiles } from '../discovery/discover.js';
 
+// Bumped whenever the measurement changes, so older results are re-measured, not reused.
+// body-v1 (2026-10-20): peaks on candle bodies, not wicks.
+export const MEASURE_METHOD = 'body-v1';
+
 export async function analyzeWallet(g, profile, { sizeUsd = 25, delaySec = 5, impactPct = 0.5, fees, days = 14, maxPositions = 40, nowSec = Math.floor(Date.now() / 1000), log = () => {} } = {}) {
   const from = nowSec - days * 86400;
   const positions = profile.positions
@@ -42,7 +46,7 @@ export async function analyzeWallet(g, profile, { sizeUsd = 25, delaySec = 5, im
     flags: walletFlags({ positions: profile.positions, lastTs: profile.lastTs, nowSec }),
     explosive: explosiveProfile(outcomes, { sizeUsd }),
     outcomes,
-    sizeUsd, delaySec, periodDays: days, analyzedAt: nowSec,
+    sizeUsd, delaySec, periodDays: days, analyzedAt: nowSec, method: MEASURE_METHOD,
     simResolution: sim.assumptions?.resolution ?? null,
   };
 }
@@ -52,11 +56,16 @@ export function saveExplosive(db, row) {
     ON CONFLICT(wallet) DO UPDATE SET data = excluded.data, built_at = excluded.built_at`).run(row.wallet, JSON.stringify(row), Date.now());
 }
 
-export async function runExplosiveAnalysis(g, db, { wallets = null, days = 14, onProgress = () => {}, log = () => {}, ...opts } = {}) {
+export async function runExplosiveAnalysis(g, db, { wallets = null, days = 14, skipFreshMs = 0, onProgress = () => {}, log = () => {}, ...opts } = {}) {
   const nowSec = opts.nowSec ?? Math.floor(Date.now() / 1000);
   let profiles = loadProfiles(db).filter((p) => (wallets ? wallets.includes(p.wallet) : true));
   profiles = profiles.filter((p) => p.positions?.some((x) => x.openTs >= nowSec - days * 86400));
   profiles.sort((a, b) => (b.lastTs ?? 0) - (a.lastTs ?? 0));
+  const fresh = new Set(skipFreshMs > 0
+    ? db.prepare('SELECT wallet, data FROM explosive_profiles WHERE built_at > ?').all(Date.now() - skipFreshMs).filter((r) => JSON.parse(r.data).method === MEASURE_METHOD).map((r) => r.wallet)
+    : []);
+  const skipped = profiles.filter((p) => fresh.has(p.wallet)).length;
+  profiles = profiles.filter((p) => !fresh.has(p.wallet));
   let analyzed = 0;
   let failed = 0;
   for (const p of profiles) {
@@ -71,7 +80,7 @@ export async function runExplosiveAnalysis(g, db, { wallets = null, days = 14, o
     }
   }
   onProgress({ phase: 'done', done: analyzed + failed, total: profiles.length });
-  return { analyzed, failed, total: profiles.length };
+  return { analyzed, failed, skipped, total: profiles.length };
 }
 
 export function loadExplosive(db, { maxCoinsPerDay = 3 } = {}) {

@@ -70,3 +70,14 @@ test('coinDetail falls back to GMGN top traders when pump.fun has no full histor
   assert.equal(d.early.source, 'GMGN top traders');
   assert.equal(d.early.buyers[0].wallet, 'Q');
 });
+
+test('safety reads GMGN security as it really arrives and takes rug risk from the live list', async () => {
+  const g = { tokenInfoLive: async () => info, tokenSecurity: async () => ({ honeypot: 1, is_honeypot: null, renounced_mint: true, renounced_freeze_account: false }), tokenHolders: async () => ({ list: [] }), tokenTraders: async () => ({ list: [] }) };
+  const pf = { trades: async () => ({ trades: pfTrades, complete: true }) };
+  const d = await coinDetail({ g, pf, token: 'MINT', fees, sizeUsd: 25, nowSec: 1600, listItem: { rug_ratio: 0.42, is_wash_trading: false, bundler_trader_amount_rate: 0.05 } });
+  assert.equal(d.safety.honeypot, true);
+  assert.equal(d.safety.mintRenounced, true);
+  assert.equal(d.safety.freezeRenounced, false);
+  assert.equal(d.safety.rugRatio, 0.42);
+  assert.match(d.momentum.disqualified, /rug|honeypot/i, 'a honeypot or rug never scores as an opportunity');
+});

@@ -97,3 +97,8 @@ test('walletFlags ports the bot and distributor checks (Kelows/million, MIT)', (
   assert.ok(dist.includes('DISTRIBUTOR'));
   assert.ok(dist.includes('LOW_ACTIVITY'));
 });
+
+test('peakAfter ignores a lone high wick and uses the best candle body', () => {
+  const cs = [{ t: 0, open: 1, close: 2, high: 50, low: 1 }, { t: 60, open: 2, close: 3, high: 3, low: 2 }];
+  assert.equal(peakAfter(cs, 0, 600, 60).peakPrice, 3);
+});

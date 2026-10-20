@@ -56,3 +56,26 @@ test('studySummary tells how often each signal type showed up early enough to pr
   assert.equal(smart.medianFollowerMultiple, 2.4);
   assert.equal(s.find((x) => x.type === 'volume').early, 1);
 });
+
+test('a single dust-trade wick is not a base: moves are measured on candle bodies', () => {
+  const cs = [
+    { t: 0, open: 1e-5, close: 1e-5, high: 1e-5, low: 1e-12, volumeUsd: 5 }, // one trade at a silly price
+    { t: 60, open: 1e-5, close: 1.1e-5, high: 1.2e-5, low: 1e-5, volumeUsd: 5 },
+    { t: 120, open: 1.1e-5, close: 3e-5, high: 3e-5, low: 1.1e-5, volumeUsd: 50 },
+    { t: 180, open: 3e-5, close: 8e-5, high: 2e-3, low: 3e-5, volumeUsd: 90 }, // one silly high wick too
+    { t: 240, open: 8e-5, close: 5e-5, high: 8e-5, low: 5e-5, volumeUsd: 40 },
+  ];
+  const m = findExplosiveMove(cs, 60, { minMultiple: 7 });
+  assert.ok(m, 'body-to-body run is 8x');
+  assert.equal(m.basePrice, 1e-5);
+  assert.equal(m.peakPrice, 8e-5);
+  assert.equal(m.multiple, 8);
+});
+
+test('a run inside one candle, or from below the lowest possible launch price, is not studied', () => {
+  const one = [{ t: 0, open: 1e-5, close: 9e-5, high: 9e-5, low: 1e-5, volumeUsd: 5 }, { t: 60, open: 9e-5, close: 8e-5, high: 9e-5, low: 8e-5, volumeUsd: 5 }];
+  assert.equal(findExplosiveMove(one, 60, { minMultiple: 7 }), null, 'needs at least one full candle between base and peak');
+  const cs = [0, 60, 120].map((t, i) => ({ t, open: [1e-9, 1e-5, 9e-5][i], close: [1e-9, 1e-5, 9e-5][i], high: [1e-9, 1e-5, 9e-5][i], low: [1e-9, 1e-5, 9e-5][i], volumeUsd: 1 }));
+  const m = findExplosiveMove(cs, 60, { minMultiple: 7, minBasePrice: 1e-6 });
+  assert.equal(m, null, 'the 1e-9 base is below the floor, and 1e-5 -> 9e-5 sits in adjacent candles');
+});

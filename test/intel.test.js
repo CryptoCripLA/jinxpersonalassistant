@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { openDb } from '../src/store/db.js';
 import { feeModel } from '../src/money/fees.js';
-import { analyzeWallet, runExplosiveAnalysis, loadExplosive } from '../src/intel/wallets.js';
+import { analyzeWallet, runExplosiveAnalysis, loadExplosive, MEASURE_METHOD } from '../src/intel/wallets.js';
 import { studyToken, runStudy, loadExamples } from '../src/intel/study.js';
 
 const rate = { usdPerSol: 100, source: 't', at: 0 };
@@ -89,4 +89,64 @@ test('runStudy keeps the examples and turns early winners into wallet candidates
   const cand = db.prepare('SELECT * FROM candidates WHERE wallet = ?').get('EARLY');
   assert.ok(cand, 'early winner saved for profiling');
   assert.match(JSON.parse(cand.sources).sources[0], /before TT ran/);
+});
+
+test('runExplosiveAnalysis skips wallets measured recently so an interrupted run resumes', async () => {
+  const db = openDb(':memory:');
+  db.prepare('INSERT INTO wallet_profiles (wallet, profile, built_at, source) VALUES (?, ?, ?, ?)').run('W1', JSON.stringify(profile), 1, 't');
+  db.prepare('INSERT INTO explosive_profiles (wallet, data, built_at) VALUES (?, ?, ?)').run('W1', JSON.stringify({ wallet: 'W1', explosive: {}, method: MEASURE_METHOD }), Date.now());
+  let calls = 0;
+  const g = fakeG({ candles: async (...a) => { calls += 1; return fakeG().candles(...a); } });
+  const job = await runExplosiveAnalysis(g, db, { sizeUsd: 25, delaySec: 5, fees, nowSec: 3000 + 86400, skipFreshMs: 6 * 3600_000 });
+  assert.equal(job.analyzed, 0);
+  assert.equal(job.skipped, 1);
+  assert.equal(calls, 0);
+});
+
+test('a wallet measured with an older method is measured again even if recent', async () => {
+  const db = openDb(':memory:');
+  db.prepare('INSERT INTO wallet_profiles (wallet, profile, built_at, source) VALUES (?, ?, ?, ?)').run('W1', JSON.stringify(profile), 1, 't');
+  db.prepare('INSERT INTO explosive_profiles (wallet, data, built_at) VALUES (?, ?, ?)').run('W1', JSON.stringify({ wallet: 'W1', explosive: {} }), Date.now());
+  const job = await runExplosiveAnalysis(fakeG(), db, { sizeUsd: 25, delaySec: 5, fees, nowSec: 3000 + 86400, skipFreshMs: 6 * 3600_000 });
+  assert.equal(job.analyzed, 1);
+  assert.equal(loadExplosive(db)[0].method, MEASURE_METHOD);
+});
+
+test('studyToken reads 1-minute candles for the first hours and labels launch spikes apart from later breakouts', async () => {
+  const seen = [];
+  const g = fakeG({ tokenInfo: async () => tokenInfo, tokenTraders: async () => traders, klineRange: async (token, res, from, to) => { seen.push(res); return { resolution: res, resSec: 60, candles: series(from, to, 60) }; } });
+  const ex = await studyToken(g, 'T', { nowSec: NOW });
+  assert.deepEqual([...new Set(seen)], ['1m']);
+  assert.equal(ex.resSec, 60);
+  assert.equal(ex.kind, 'breakout', 'the run started 7 minutes after launch, not in the launch candles');
+});
+
+test('a launch spike is kept and labelled, with the part a follower could still have caught', async () => {
+  // $3K at launch to $45K inside the first minute, then $45K to $180K over the next 20 minutes.
+  const p = (t) => (t < 660 ? 3e-6 + ((t - 600) / 60) * 42e-6 : 45e-6 + Math.min(1, (t - 660) / 1200) * 135e-6);
+  const cs = [];
+  for (let t = 600; t < 600 + 3600; t += 60) cs.push({ t, open: p(t), close: p(t + 60), high: p(t + 60), low: p(t), volumeUsd: 10 });
+  const g = fakeG({ tokenInfo: async () => tokenInfo, tokenTraders: async () => traders, klineRange: async () => ({ resolution: '1m', resSec: 60, candles: cs }) });
+  const ex = await studyToken(g, 'T', { nowSec: NOW });
+  assert.ok(ex, 'a 60x launch run is kept as an example');
+  assert.equal(ex.kind, 'launch');
+  assert.ok(ex.move.multiple > 50);
+  assert.ok(ex.followable, 'the best run after the launch minute is reported');
+  assert.ok(ex.followable.multiple > 3.5 && ex.followable.multiple < 4.1, `about 4x from $45K (got ${ex.followable.multiple})`);
+  assert.ok(Math.abs(ex.followable.baseMcapUsd - 45_000) < 5_000);
+});
+
+test('runStudy counts what it studied and why coins were left out', async () => {
+  const db = openDb(':memory:');
+  const flat = series(0, 900, 60);
+  const g = fakeG({
+    tokenInfo: async (t) => ({ ...tokenInfo, address: t }),
+    tokenTraders: async () => traders,
+    klineRange: async (t, res, from, to) => ({ resolution: '1m', resSec: 60, candles: t === 'RUN' ? series(from, to, 60) : t === 'FLAT' ? flat : flat.slice(0, 2) }),
+  });
+  const r = await runStudy(g, db, { tokens: ['RUN', 'FLAT', 'THIN'], nowSec: NOW });
+  assert.deepEqual(r.reasons, { 'never ran 7x within 6 hours': 1, 'too little trading data': 1 });
+  assert.equal(r.examples, 1);
+  assert.equal(r.breakouts, 1);
+  assert.equal(r.launches, 0);
 });

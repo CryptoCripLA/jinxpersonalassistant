@@ -25,28 +25,39 @@ export function candleAt(candles, ts, resSec) {
   return last;
 }
 
-export function findExplosiveMove(candles, resSec, { minMultiple = 7, maxDurationSec = 24 * 3600 } = {}) {
+// Candle bodies (open/close), not wicks: on thin launch curves a single dust trade can print a
+// wick thousands of times away from where anyone could really buy or sell.
+export const bodyLow = (c) => Math.min(c.open, c.close);
+export const bodyHigh = (c) => Math.max(c.open, c.close);
+
+// minGapCandles: the base must be at least two candles before the peak. A run inside one or two
+// candles is a launch spike only snipers catch; there is no signal anyone could have followed.
+// minBasePrice: bases below the lowest possible launch price are bad ticks, not real prices.
+export function findExplosiveMove(candles, resSec, { minMultiple = 7, maxDurationSec = 24 * 3600, minBasePrice = 0, minGapCandles = 2 } = {}) {
   let best = null;
-  for (let j = 0; j < candles.length; j++) {
+  for (let j = minGapCandles; j < candles.length; j++) {
     const peak = candles[j];
-    if (!isNum(peak.high)) continue;
+    const top = bodyHigh(peak);
+    if (!isNum(top)) continue;
     let base = null;
-    for (let i = 0; i <= j; i++) {
+    for (let i = 0; i <= j - minGapCandles; i++) {
       const c = candles[i];
-      if (peak.t - c.t > maxDurationSec || !isNum(c.low) || c.low <= 0) continue;
-      if (!base || c.low < base.low) base = c;
+      const v = bodyLow(c);
+      if (peak.t - c.t > maxDurationSec || !isNum(v) || v <= 0 || v < minBasePrice) continue;
+      if (!base || v <= bodyLow(base)) base = c; // the last low before the run, not the first
     }
     if (!base) continue;
-    const multiple = peak.high / base.low;
+    const multiple = top / bodyLow(base);
     if (!best || multiple > best.multiple) best = { base, peak, multiple };
   }
   if (!best || best.multiple < minMultiple) return null;
-  const breakout = candles.find((c) => c.t > best.base.t && c.t <= best.peak.t && c.high >= best.base.low * 2);
+  const basePrice = bodyLow(best.base);
+  const breakout = candles.find((c) => c.t > best.base.t && c.t <= best.peak.t && bodyHigh(c) >= basePrice * 2);
   return {
     baseTs: best.base.t,
-    basePrice: best.base.low,
+    basePrice,
     peakTs: best.peak.t,
-    peakPrice: best.peak.high,
+    peakPrice: bodyHigh(best.peak),
     multiple: best.multiple,
     durationSec: best.peak.t - best.base.t,
     breakoutTs: breakout?.t ?? best.peak.t,
@@ -62,7 +73,7 @@ export function followTrailing(candles, resSec, { entryTs, trailPct = 0.3 }) {
   let high = entry.close;
   for (const c of candles) {
     if (c.t <= entry.t) continue;
-    high = Math.max(high, c.high);
+    high = Math.max(high, bodyHigh(c));
     if (c.close <= high * (1 - trailPct)) {
       return { entryTs, entryPrice: entry.close, exitTs: c.t, exitPrice: c.close, multiple: c.close / entry.close, highAfterEntry: high / entry.close, open: false };
     }

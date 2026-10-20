@@ -27,13 +27,15 @@ const mean = (xs) => {
 };
 const countAtLeast = (xs) => Object.fromEntries(MULTIPLE_STEPS.map((m) => [m, xs.filter((x) => isNum(x) && x >= m).length]));
 
-// Highest candle high whose interval overlaps [fromTs, fromTs + horizonSec]. Candle t is its start (seconds).
+// Highest candle body (open/close) overlapping [fromTs, fromTs + horizonSec]; candle t is its
+// start in seconds. Bodies, not wicks: one dust trade can print a wick nobody could sell into.
 export function peakAfter(candles, fromTs, horizonSec, resSec) {
   let best = null;
   for (const k of candles ?? []) {
     if (k.t + resSec <= fromTs || k.t > fromTs + horizonSec) continue;
-    if (!isNum(k.high)) continue;
-    if (!best || k.high > best.peakPrice) best = { peakPrice: k.high, peakTs: Math.max(k.t, fromTs) };
+    const top = Math.max(k.open, k.close);
+    if (!isNum(top)) continue;
+    if (!best || top > best.peakPrice) best = { peakPrice: top, peakTs: Math.max(k.t, fromTs) };
   }
   return best;
 }

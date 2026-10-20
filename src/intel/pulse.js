@@ -94,6 +94,15 @@ export class Pulse {
     return { ...cols, explosive, hidden, updatedAt: this.updatedAt, error: this.error };
   }
 
+  // The raw GMGN list entry: carries rug ratio and fake-activity rates the token routes lack.
+  raw(address) {
+    for (const list of [this.lists.near, this.lists.new, this.lists.graduated, this.lists.movers]) {
+      const t = list.find((x) => x.address === address);
+      if (t) return t;
+    }
+    return null;
+  }
+
   find(address) {
     const now = this.updatedAt ?? this.nowSec();
     for (const list of [this.lists.near, this.lists.new, this.lists.graduated]) {

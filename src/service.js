@@ -3,8 +3,15 @@ import { kvGet, kvSet } from './store/db.js';
 import { feeModel } from './money/fees.js';
 import { rateLine } from './money/usd.js';
 import { loadProfiles, deepProfile, runDiscovery, prefilter } from './discovery/discover.js';
-import { runExplosiveAnalysis, loadExplosive } from './intel/wallets.js';
-import { runStudy, pickStudyTokens } from './intel/study.js';
+import { runExplosiveAnalysis, loadExplosive, analyzeWallet, saveExplosive } from './intel/wallets.js';
+import { runStudy, pickStudyTokens, loadExamples, reachedFromBase } from './intel/study.js';
+import { studySummary } from './analysis/history.js';
+import { scenario, SCENARIO_MULTIPLES } from './analysis/scenario.js';
+import { coinDetail } from './intel/coin.js';
+import { Pulse } from './intel/pulse.js';
+import { PumpFun } from './pumpfun/client.js';
+import { PumpPortalStream } from './pumpfun/stream.js';
+import { Trader } from './trade/manual.js';
 import { preferenceFit, DEFAULT_PREFS } from './analysis/profile.js';
 import { rankWallets } from './analysis/rank.js';
 import { suggestWallets } from './analysis/suggest.js';
@@ -36,6 +43,14 @@ export class Service {
       myWallet: async () => (await this.account()).address,
       balanceUsd: async () => (await this.account()).totalUsd,
     });
+    this.pf = new PumpFun({ log });
+    this.stream = new PumpPortalStream({ log });
+    this.pulse = new Pulse({ g, log, explosiveBuys: (mint) => this.stream.walletBuys(mint, Math.floor(Date.now() / 1000)) });
+    this.trader = new Trader({ g, db, log, rate: () => this.rate(), myWallet: async () => (await this.account()).address });
+    this.coinCache = new Map();
+    this.boardCache = null;
+    this.jobs = { running: null, last: kvGet(db, 'jobs.last', null), progress: null };
+    this.grok = null;
   }
 
   user() {
@@ -222,8 +237,9 @@ export class Service {
     const q = String(question ?? '').slice(0, 600);
     const built = await builtInAnswer(q, ctx, this).catch((e) => ({ text: `I hit a problem getting that data: ${e.message}`, evidence: [], actions: [], by: 'built-in' }));
     if (built) return built;
-    if (this.claude) {
-      const r = await this.claude.ask(q, ctx);
+    const ai = this.grok ?? this.claude;
+    if (ai) {
+      const r = await ai.ask(q, ctx).catch((e) => ({ text: `The AI assistant is unavailable right now (${e.message}). Built-in questions still work.`, by: 'error' }));
       return { ...r, evidence: [], actions: [] };
     }
     return {
@@ -242,19 +258,146 @@ export class Service {
     return { wallet, settings: d.settings.desk, items: d.settings.items };
   }
 
+  // ---- terminal data
+  explosiveBoard() {
+    if (!this.boardCache || Date.now() - this.boardCache.at > 60_000) this.boardCache = { at: Date.now(), rows: loadExplosive(this.db, { maxCoinsPerDay: this.user().prefs.maxCoinsPerDay }) };
+    return this.boardCache.rows;
+  }
+
+  explosiveMap() {
+    return new Map(this.explosiveBoard().filter((r) => r.isExplosive).map((r) => [r.wallet, r]));
+  }
+
+  walletExplosive(wallet) {
+    const r = this.db.prepare('SELECT data FROM explosive_profiles WHERE wallet = ?').get(wallet);
+    return r ? JSON.parse(r.data) : null;
+  }
+
+  async measureWallet(wallet) {
+    const p = await this.profile(wallet);
+    const u = this.user();
+    const row = await analyzeWallet(this.g, p, { sizeUsd: u.sizeUsd, delaySec: u.delaySec, impactPct: u.impactPct, fees: await this.fees(), log: this.log });
+    saveExplosive(this.db, row);
+    this.boardCache = null;
+    return row;
+  }
+
+  pulseColumns() {
+    return this.pulse.columns();
+  }
+
+  async coin(address, { fresh = false } = {}) {
+    const hit = this.coinCache.get(address);
+    if (!fresh && hit && Date.now() - hit.at < 8_000) return hit.value;
+    const value = coinDetail({
+      g: this.g, pf: this.pf, token: address, explosive: this.explosiveMap(), fees: await this.fees(), sizeUsd: this.user().sizeUsd,
+      tapeRates: this.pulse.tape.rates(address, Math.floor(Date.now() / 1000)), listItem: this.pulse.raw(address), log: this.log,
+    });
+    this.coinCache.set(address, { at: Date.now(), value });
+    if (this.coinCache.size > 200) this.coinCache.delete(this.coinCache.keys().next().value);
+    try {
+      return await value;
+    } catch (e) {
+      this.coinCache.delete(address);
+      throw e;
+    }
+  }
+
+  async scenarioFor(c, sizeUsd, multiple = null) {
+    const multiples = multiple != null && !SCENARIO_MULTIPLES.includes(multiple) ? [...SCENARIO_MULTIPLES, multiple].sort((a, b) => a - b) : SCENARIO_MULTIPLES;
+    return scenario({ sizeUsd: sizeUsd ?? this.user().sizeUsd, marketCapUsd: c.marketCapUsd, fees: await this.fees(), venue: c.graduatedTs || (c.progress ?? 0) >= 1 ? 'pool' : 'curve', multiples });
+  }
+
+  async candles(address, res = '1m') {
+    const now = Math.floor(Date.now() / 1000);
+    const span = { '1m': 6 * 3600, '5m': 24 * 3600, '15m': 3 * 86400, '1h': 14 * 86400 }[res] ?? 6 * 3600;
+    if (res === '1m' && /pump$/.test(address)) {
+      const c = await this.coin(address).catch(() => null);
+      const k = await this.pf.candles(address, (c?.creationTs ?? now - span) * 1000, '1m');
+      if (k.length) return { resolution: '1m', resSec: 60, candles: k, source: 'pump.fun' };
+    }
+    const k = await this.g.klineRange(address, res, now - span, now);
+    return { ...k, source: 'GMGN' };
+  }
+
+  examples() {
+    return loadExamples(this.db);
+  }
+
+  studyStats() {
+    const ex = this.examples();
+    return { examples: ex.length, reachedFromBase: (mcap, m) => reachedFromBase(ex, mcap, m) };
+  }
+
+  historySummary() {
+    const ex = this.examples();
+    return {
+      examples: ex.length,
+      launches: ex.filter((e) => e.kind === 'launch').length,
+      breakouts: ex.filter((e) => e.kind === 'breakout').length,
+      lastRun: kvGet(this.db, 'study.last', null),
+      signals: studySummary(ex),
+      top: ex.slice(0, 8).map((e) => ({ symbol: e.symbol, kind: e.kind, multiple: e.move.multiple, baseMarketCapUsd: e.baseMcapUsd, peakMarketCapUsd: e.peakMcapUsd, minutesToPeak: Math.round(e.move.durationSec / 60), followableMultiple: e.followable?.multiple ?? null, followableFromMarketCapUsd: e.followable?.baseMcapUsd ?? null, firstUsefulSignal: e.firstUsefulSignal?.label ?? null, earlyWallets: e.earlyWallets.length })),
+    };
+  }
+
+  async portfolio() {
+    const acct = await this.account();
+    if (!acct.address) return { account: acct, holdings: [], orders: this.trader.orders(30) };
+    const h = await this.g.walletHoldings(acct.address, { limit: 50 }).catch((e) => ({ error: e.message }));
+    const num = (v) => (v == null || v === '' ? null : Number(v));
+    const holdings = (h.list ?? []).map((x) => ({
+      token: x.token?.token_address, symbol: x.token?.symbol ?? '', logo: x.token?.logo ?? '',
+      valueUsd: num(x.usd_value), costUsd: num(x.accu_cost), boughtUsd: num(x.history_bought_cost), soldUsd: num(x.history_sold_income),
+      realizedUsd: num(x.realized_profit), unrealizedUsd: num(x.unrealized_profit), totalUsd: num(x.total_profit), totalPct: num(x.total_profit_pnl),
+      buys: x.history_total_buys, sells: x.history_total_sells, since: x.start_holding_at, lastActive: x.last_active_timestamp,
+      open: num(x.balance) > 0 && num(x.usd_value) > 0.01,
+    }));
+    const sum = (k) => holdings.reduce((a, x) => a + (x[k] ?? 0), 0);
+    return {
+      label: 'LIVE', account: acct, holdings, error: h.error ?? null,
+      totals: { valueUsd: sum('valueUsd'), realizedUsd: sum('realizedUsd'), unrealizedUsd: sum('unrealizedUsd') },
+      orders: this.trader.orders(30), copies: this.desk.positions(),
+    };
+  }
+
+  // Research jobs run inside the server so every GMGN call shares one rate limiter.
+  startJob(kind) {
+    if (this.jobs.running) return this.jobs;
+    const onProgress = (p) => (this.jobs.progress = p);
+    const run = {
+      study: () => this.runStudy({ onProgress }),
+      wallets: () => this.runWalletMeasure({ onProgress }),
+      discover: () => this.discoverEarlyWallets({ onProgress }),
+      // the full loop: find past runners, harvest their early wallets, measure everyone
+      all: async () => ({ study: await this.runStudy({ onProgress }), discover: await this.discoverEarlyWallets({ onProgress }), wallets: await this.runWalletMeasure({ onProgress }) }),
+    }[kind];
+    if (!run) throw Object.assign(new Error('job must be study, wallets, discover or all'), { status: 400 });
+    this.jobs = { ...this.jobs, running: kind, progress: { phase: 'starting', done: 0, total: 0 } };
+    run()
+      .then((r) => { this.jobs.last = { kind, result: r, at: Date.now() }; })
+      .catch((e) => { this.jobs.last = { kind, error: e.message, at: Date.now() }; })
+      .finally(() => {
+        this.jobs.running = null;
+        this.boardCache = null;
+        kvSet(this.db, 'jobs.last', this.jobs.last);
+      });
+    return this.jobs;
+  }
+
   // ---- explosive intelligence jobs
   explosiveSet() {
     return new Set(loadExplosive(this.db).filter((r) => r.isExplosive).map((r) => r.wallet));
   }
 
-  async runStudy({ limit = 40, onProgress = () => {} } = {}) {
+  async runStudy({ limit = 60, onProgress = () => {} } = {}) {
     const tokens = await pickStudyTokens(this.g, this.db, { limit });
     return runStudy(this.g, this.db, { tokens, explosive: this.explosiveSet(), onProgress, log: this.log });
   }
 
-  async runWalletMeasure({ wallets = null, onProgress = () => {} } = {}) {
+  async runWalletMeasure({ wallets = null, skipFreshMs = 6 * 3600_000, onProgress = () => {} } = {}) {
     const u = this.user();
-    return runExplosiveAnalysis(this.g, this.db, { wallets, sizeUsd: u.sizeUsd, delaySec: u.delaySec, impactPct: u.impactPct, fees: await this.fees(), onProgress, log: this.log });
+    return runExplosiveAnalysis(this.g, this.db, { wallets, skipFreshMs: wallets ? 0 : skipFreshMs, sizeUsd: u.sizeUsd, delaySec: u.delaySec, impactPct: u.impactPct, fees: await this.fees(), onProgress, log: this.log });
   }
 
   // Wallets the history study caught getting in before a breakout: prefilter, profile, measure.
