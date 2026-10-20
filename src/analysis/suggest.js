@@ -8,10 +8,11 @@ import { STAGE_SHORT, duration, roundNice } from '../text/plain.js';
 
 const MIN_SPAN_DAYS = 3;
 const MIN_CLOSED = 8;
+const ACTIVE_WITHIN_SEC = 7 * 86400;
 
 function closeMatch(p, prefs) {
-  // one soft rule broken by a little: up to 5 coins a day, or "generally" under 2 hours for 40%+
-  const coinsOk = p.coinsPerActiveDay != null && p.coinsPerActiveDay <= prefs.maxCoinsPerDay + 2;
+  // a soft rule broken by a little: up to twice your coins a day, or "generally" under 2 hours for 40%+
+  const coinsOk = p.coinsPerActiveDay != null && p.coinsPerActiveDay <= prefs.maxCoinsPerDay * 2;
   const holdOk = p.shareHeldUnder2h == null || p.shareHeldUnder2h >= 0.4;
   return coinsOk && holdOk;
 }
@@ -20,22 +21,29 @@ function mainStage(p) {
   return ['graduated', 'early', 'snipe'].sort((a, b) => (p.stageMix?.[b] ?? 0) - (p.stageMix?.[a] ?? 0))[0];
 }
 
-export async function suggestWallets({ profiles, sizeUsd, capitalUsd, fees, simulate, prefs = DEFAULT_PREFS, max = 5, shortlist = 8 }) {
+export async function suggestWallets({ profiles, sizeUsd, capitalUsd, fees, simulate, prefs = DEFAULT_PREFS, max = 5, shortlist = 10, nowSec = null }) {
   const pool = [];
+  const now = nowSec ?? Math.max(0, ...profiles.map((p) => p.lastTs ?? 0));
   for (const p of profiles) {
+    if (!(p.lastTs >= now - ACTIVE_WITHIN_SEC)) continue;
     if (p.flags?.includes('bot-speed') || p.flags?.includes('wash-trader')) continue;
     if (!(p.spanDays >= MIN_SPAN_DAYS) || p.closedCount < MIN_CLOSED) continue;
     const fit = preferenceFit(p, prefs);
     const match = fit.fits ? 'match' : closeMatch(p, prefs) ? 'close match' : null;
     if (!match) continue;
-    const quick = quickKeepEstimate(p.positions, { sizeUsd, fees });
+    const quick = quickKeepEstimate(p.positions, { sizeUsd, fees, minBuyUsd: p.p25BuyUsd ?? 0 });
     if (!(quick.keepUsd > 0)) continue;
     pool.push({ p, fit, match, quick });
   }
   pool.sort((a, b) => (a.match === b.match ? 0 : a.match === 'match' ? -1 : 1) || b.quick.keepUsd / b.p.spanDays - a.quick.keepUsd / a.p.spanDays);
   const picks = [];
   for (const c of pool.slice(0, shortlist)) {
-    const sim = await simulate(c.p);
+    let sim;
+    try {
+      sim = await simulate(c.p);
+    } catch {
+      continue;
+    }
     const net = sim?.typical?.netUsd;
     if (!(net > 0)) continue;
     const days = sim.periodDays ?? c.p.spanDays;

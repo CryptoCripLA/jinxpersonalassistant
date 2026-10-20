@@ -111,7 +111,11 @@ export class Gmgn {
   }
 
   // Candles in seconds. Tries Pro 1s candles; once refused, uses 30s for the session.
+  // The live API takes from/to in MILLISECONDS (verified 2026-10-20: second values return
+  // no candles even though the docs say seconds) and returns candle time in ms.
   async candles(addr, from, to) {
+    const fromMs = Math.floor(from) * 1000;
+    const toMs = Math.ceil(to) * 1000;
     const historical = to < this.now() / 1000 - 600;
     const ttl = historical ? 30 * 24 * 60 * MIN : 30 * S;
     const norm = (data, resolution) => ({
@@ -124,14 +128,14 @@ export class Gmgn {
     });
     if (!this.oneSecondRefused) {
       try {
-        const d = await this.call('kline1s', () => this.api.getTokenKline(CHAIN, addr, '1s', from, to), { cacheKey: `k1:${addr}:${from}:${to}`, ttl });
+        const d = await this.call('kline1s', () => this.api.getTokenKline(CHAIN, addr, '1s', fromMs, toMs), { cacheKey: `k1:${addr}:${from}:${to}`, ttl });
         return norm(d, '1s');
       } catch (e) {
         if (e.code !== 'PLAN') throw e;
         this.oneSecondRefused = true;
       }
     }
-    const d = await this.call('kline', () => this.api.getTokenKline(CHAIN, addr, '30s', from, to), { cacheKey: `k30:${addr}:${from}:${to}`, ttl });
+    const d = await this.call('kline', () => this.api.getTokenKline(CHAIN, addr, '30s', fromMs, toMs), { cacheKey: `k30:${addr}:${from}:${to}`, ttl });
     return norm(d, '30s');
   }
 

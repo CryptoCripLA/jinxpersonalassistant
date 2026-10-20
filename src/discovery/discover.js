@@ -12,6 +12,7 @@ const INSIDER_TAGS = new Set(['creator', 'dev_team', 'bundler', 'rat_trader', 'e
 const BOT_TAGS = new Set(['dex_bot', 'sandwich_bot', 'mev_bot']);
 export const MAX_BUYS_PER_DAY = 20; // generous: 1-3 coins a day plus adds still fits well under this
 export const MIN_BUYS_30D = 10;
+export const SELECTIVE_BUYS_PER_DAY = 6; // deep-read these first: they can match a 1-3 coins a day style
 
 export function tradersToCandidates(list, { symbol, why }) {
   const out = [];
@@ -47,12 +48,13 @@ export function prefilter(rows, { days = 30, maxBuysPerDay = MAX_BUYS_PER_DAY } 
     else if (profit <= 0) dropped[w] = 'lost money over the last 30 days';
     else keep.push({ wallet: w, realizedUsd30d: profit, buys30d: buys, sells30d: Number(r.sell ?? 0) });
   }
-  // Selective traders first: profit per buy, not total profit (total favours busy bots).
-  keep.sort((a, b) => b.realizedUsd30d / b.buys30d - a.realizedUsd30d / a.buys30d);
+  // Selective traders first, then profit per buy (total profit favours busy bots).
+  const selective = (k) => (k.buys30d / days <= SELECTIVE_BUYS_PER_DAY ? 1 : 0);
+  keep.sort((a, b) => selective(b) - selective(a) || b.realizedUsd30d / b.buys30d - a.realizedUsd30d / a.buys30d);
   return { keep, dropped };
 }
 
-export async function gatherCandidates(g, { graduatedTokens = 12, trendingTokens = 8, log = () => {} } = {}) {
+export async function gatherCandidates(g, { graduatedTokens = 25, trendingTokens = 10, log = () => {} } = {}) {
   const all = [];
   const safe = async (label, fn) => {
     try {
@@ -72,6 +74,8 @@ export async function gatherCandidates(g, { graduatedTokens = 12, trendingTokens
   for (const t of grads) {
     const d = await safe(`traders of ${t.symbol}`, () => g.tokenTraders(t.address, { orderBy: 'profit', limit: 100 }));
     all.push(...tradersToCandidates(d?.list, { symbol: t.symbol, why: 'graduated coin' }));
+    const sm = await safe(`smart traders of ${t.symbol}`, () => g.tokenTraders(t.address, { orderBy: 'profit', tag: 'smart_degen', limit: 100 }));
+    all.push(...tradersToCandidates(sm?.list, { symbol: t.symbol, why: 'smart money on a graduated coin' }));
   }
   const rk = await safe('trending', () => g.trending('1h', { order_by: 'volume', limit: 50 }));
   const hot = (rk?.rank ?? []).slice(0, trendingTokens);

@@ -15,7 +15,9 @@ function venuePct(pos, fees) {
   return fees.curveFeePct;
 }
 
-export function quickKeepEstimate(positions, { sizeUsd, fees }) {
+// minBuyUsd mirrors the "Minimum copy amount" setting: the wallet's tiny test buys are
+// skipped by the copy, so they are skipped here too.
+export function quickKeepEstimate(positions, { sizeUsd, fees, minBuyUsd = 0 }) {
   const networkUsd = solToUsd(fees.networkSolPerTx, fees.rate);
   let grossUsd = 0;
   let feesUsd = 0;
@@ -24,6 +26,7 @@ export function quickKeepEstimate(positions, { sizeUsd, fees }) {
   let unknownFees = false;
   for (const p of positions) {
     if (p.status !== 'closed' || p.returnRatio == null) continue;
+    if (minBuyUsd > 0 && (p.buys?.[0]?.usd ?? 0) < minBuyUsd) continue;
     n += 1;
     const out = sizeUsd * (1 + p.returnRatio);
     grossUsd += out - sizeUsd;
@@ -49,7 +52,7 @@ export function rankWallets(profiles, { sizeUsd, fees, prefs = DEFAULT_PREFS, mi
     for (const p of profiles) {
       const closed = p.positions.filter((x) => x.entryStage === stage && x.status === 'closed');
       if (closed.length < minTrades) continue;
-      const est = quickKeepEstimate(closed, { sizeUsd, fees });
+      const est = quickKeepEstimate(closed, { sizeUsd, fees, minBuyUsd: p.p25BuyUsd ?? 0 });
       const fit = preferenceFit(p, prefs);
       const wins = closed.filter((x) => x.realizedUsd > 0).length;
       const realized = closed.reduce((a, x) => a + x.realizedUsd, 0);

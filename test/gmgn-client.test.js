@@ -48,6 +48,8 @@ test('1-second candles fall back to 30-second candles when the key is not on Pro
   assert.equal(k.candles[0].close, 2);
   await g.candles('MINT', 1_000_000_100, 1_000_000_160);
   assert.equal(calls.filter((c) => c.args[2] === '1s').length, 1, 'stops asking for 1s once refused');
+  const last = calls[calls.length - 1];
+  assert.deepEqual([last.args[3], last.args[4]], [1_000_000_100_000, 1_000_000_160_000], 'GMGN candle range must be sent in milliseconds');
 });
 
 test('a server rate-limit ban pauses all calls and is reported, not retried in a loop', async () => {

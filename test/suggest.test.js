@@ -13,7 +13,7 @@ const mkProfile = (wallet, o = {}) => {
     holdSec: 1800, returnRatio: o.ret ?? 0.3, realizedUsd: 30, sells: [{}], buys: [{ usd: 100, dexFeeUsd: 1 }],
   }));
   return {
-    wallet, positions, closedCount: 12, openCount: 0, spanDays: 12, coinsPerActiveDay: o.coins ?? 2, medianHoldSec: o.hold ?? 1800,
+    wallet, positions, closedCount: 12, openCount: 0, spanDays: 12, lastTs: 1_800_000_000 + 11 * DAY + 1800, p25BuyUsd: 50, coinsPerActiveDay: o.coins ?? 2, medianHoldSec: o.hold ?? 1800,
     shareHeldUnder2h: o.share ?? 1, winRate: 0.7, wins: 8, realizedUsd: 360, medianCopyWindowSec: 1800,
     stageMix: { graduated: 1, early: 0, snipe: 0, unknown: 0 }, flags: o.flags ?? [], gmgn30: null, ...o.extra,
   };
@@ -56,4 +56,11 @@ test('close matches are labelled when they break one of your style rules', async
   const s = await suggestWallets({ profiles: ps, sizeUsd: 25, capitalUsd: 100, fees, simulate: fakeSim({ HOLDER: 30 }) });
   assert.equal(s.picks[0].match, 'close match');
   assert.ok(s.picks[0].differences.some((d) => /hours/.test(d)));
+});
+
+test('a wallet that stopped trading over a week ago is not suggested', async () => {
+  const fresh = mkProfile('FRESH');
+  const stale = mkProfile('STALE', { extra: { lastTs: fresh.lastTs - 10 * DAY } });
+  const s = await suggestWallets({ profiles: [fresh, stale], sizeUsd: 25, capitalUsd: 100, fees, simulate: fakeSim({ FRESH: 10, STALE: 99 }), nowSec: fresh.lastTs });
+  assert.deepEqual(s.picks.map((p) => p.wallet), ['FRESH']);
 });

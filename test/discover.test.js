@@ -36,7 +36,7 @@ test('prefilter keeps profitable, selective wallets and says why it dropped the 
     { wallet_address: 'BUSYGOOD', realized_profit: '3000', buy: 500, sell: 500 },
   ];
   const { keep, dropped } = prefilter(rows, { days: 30 });
-  assert.deepEqual(keep.map((k) => k.wallet), ['GOOD', 'BUSYGOOD'], 'profit per buy ranks the selective wallet first');
+  assert.deepEqual(keep.map((k) => k.wallet), ['GOOD', 'BUSYGOOD'], 'selective wallets are read first');
   assert.match(dropped.RARE, /too few/);
   assert.match(dropped.BOT, /buys a day/);
   assert.match(dropped.LOSER, /lost money/);
