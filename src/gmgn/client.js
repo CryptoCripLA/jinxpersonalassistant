@@ -6,6 +6,7 @@ import { ROUTE_WEIGHTS } from './weights.js';
 const CHAIN = 'sol';
 const S = 1000;
 const MIN = 60 * S;
+const RES_SEC = { '30s': 30, '1m': 60, '5m': 300, '15m': 900, '1h': 3600, '4h': 14400, '1d': 86400 };
 
 export class GmgnError extends Error {
   // answered=true means GMGN's server replied with an error, so the request was
@@ -139,6 +140,45 @@ export class Gmgn {
     return norm(d, '30s');
   }
 
+  // Any resolution over any range. GMGN answers at most 100 candles per request (the newest
+  // 100 inside the window, verified 2026-10-20), so the range is read in 100-candle windows.
+  async klineRange(addr, resolution, fromSec, toSec) {
+    const resSec = RES_SEC[resolution];
+    if (!resSec) throw new GmgnError(`unknown candle size ${resolution}`, { route: 'kline' });
+    const span = resSec * 100;
+    const byT = new Map();
+    for (let a = Math.floor(fromSec); a < toSec; a += span) {
+      const b = Math.min(toSec, a + span);
+      const historical = b < this.now() / 1000 - 600;
+      const d = await this.call('kline', () => this.api.getTokenKline(CHAIN, addr, resolution, a * 1000, b * 1000), {
+        cacheKey: `kr:${addr}:${resolution}:${a}:${b}`,
+        ttl: historical ? 30 * 24 * 60 * MIN : 20 * S,
+      });
+      for (const c of d?.list ?? []) {
+        const t = c.time >= 1e11 ? Math.floor(c.time / 1000) : c.time;
+        if (t < fromSec - resSec || t > toSec) continue;
+        byT.set(t, { t, open: Number(c.open), close: Number(c.close), high: Number(c.high), low: Number(c.low), volumeUsd: Number(c.volume) });
+      }
+    }
+    return { resolution, resSec, candles: [...byT.values()].sort((x, y) => x.t - y.t) };
+  }
+
+  tokenPool(addr) {
+    return this.call('tokenPool', () => this.api.getTokenPoolInfo(CHAIN, addr), { cacheKey: `tp:${addr}`, ttl: 30 * S });
+  }
+
+  tokenHolders(addr, { limit = 50 } = {}) {
+    return this.call('tokenHolders', () => this.api.getTokenTopHolders(CHAIN, addr, { limit }), { cacheKey: `th:${addr}:${limit}`, ttl: 30 * S });
+  }
+
+  tokenInfoLive(addr) {
+    return this.call('tokenInfo', () => this.api.getTokenInfo(CHAIN, addr), { cacheKey: `til:${addr}`, ttl: 8 * S });
+  }
+
+  walletHoldings(wallet, { limit = 50 } = {}) {
+    return this.call('walletHoldings', () => this.api.getWalletHoldings(CHAIN, wallet, { limit }), { cacheKey: `wh:${wallet}:${limit}`, ttl: 15 * S });
+  }
+
   // ---- wallets
   walletActivity(wallet, { cursor, limit = 50, fresh = false } = {}) {
     const extra = { limit };
@@ -199,8 +239,11 @@ export class Gmgn {
     return this.call('trenches', () => this.api.getTrenches(CHAIN, types, undefined, limit, Object.keys(filters).length ? filters : undefined), { cacheKey: key, ttl: 30 * S });
   }
 
-  trending(interval = '1h', extra = {}) {
-    return this.call('trending', () => this.api.getTrendingSwaps(CHAIN, interval, extra), { cacheKey: `rk:${interval}:${JSON.stringify(extra)}`, ttl: 60 * S });
+  // GMGN sometimes wraps the list as { code, data: { rank } } (seen live for 1m and 5m).
+  async trending(interval = '1h', extra = {}) {
+    const ttl = interval === '1m' || interval === '5m' ? 15 * S : 60 * S;
+    const d = await this.call('trending', () => this.api.getTrendingSwaps(CHAIN, interval, extra), { cacheKey: `rk:${interval}:${JSON.stringify(extra)}`, ttl });
+    return { rank: d?.rank ?? d?.data?.rank ?? [] };
   }
 
   signals(groups) {

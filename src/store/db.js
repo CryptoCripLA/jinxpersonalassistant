@@ -30,6 +30,16 @@ CREATE TABLE IF NOT EXISTS copy_positions (
   PRIMARY KEY (token, wallet, opened_at)
 );
 CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS explosive_profiles (
+  wallet TEXT PRIMARY KEY, data TEXT NOT NULL, built_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS explosive_examples (
+  token TEXT PRIMARY KEY, data TEXT NOT NULL, built_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS orders (
+  id TEXT PRIMARY KEY, side TEXT NOT NULL, token TEXT NOT NULL, symbol TEXT, state TEXT NOT NULL,
+  detail TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, order_id TEXT, tx_hash TEXT
+);
 `;
 
 export function openDb(path) {

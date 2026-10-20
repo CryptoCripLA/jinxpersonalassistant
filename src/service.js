@@ -2,7 +2,9 @@
 import { kvGet, kvSet } from './store/db.js';
 import { feeModel } from './money/fees.js';
 import { rateLine } from './money/usd.js';
-import { loadProfiles, deepProfile, runDiscovery } from './discovery/discover.js';
+import { loadProfiles, deepProfile, runDiscovery, prefilter } from './discovery/discover.js';
+import { runExplosiveAnalysis, loadExplosive } from './intel/wallets.js';
+import { runStudy, pickStudyTokens } from './intel/study.js';
 import { preferenceFit, DEFAULT_PREFS } from './analysis/profile.js';
 import { rankWallets } from './analysis/rank.js';
 import { suggestWallets } from './analysis/suggest.js';
@@ -238,6 +240,52 @@ export class Service {
     const d = await this.walletDetail(wallet);
     this.desk.watch(wallet, d.settings.desk);
     return { wallet, settings: d.settings.desk, items: d.settings.items };
+  }
+
+  // ---- explosive intelligence jobs
+  explosiveSet() {
+    return new Set(loadExplosive(this.db).filter((r) => r.isExplosive).map((r) => r.wallet));
+  }
+
+  async runStudy({ limit = 40, onProgress = () => {} } = {}) {
+    const tokens = await pickStudyTokens(this.g, this.db, { limit });
+    return runStudy(this.g, this.db, { tokens, explosive: this.explosiveSet(), onProgress, log: this.log });
+  }
+
+  async runWalletMeasure({ wallets = null, onProgress = () => {} } = {}) {
+    const u = this.user();
+    return runExplosiveAnalysis(this.g, this.db, { wallets, sizeUsd: u.sizeUsd, delaySec: u.delaySec, impactPct: u.impactPct, fees: await this.fees(), onProgress, log: this.log });
+  }
+
+  // Wallets the history study caught getting in before a breakout: prefilter, profile, measure.
+  async discoverEarlyWallets({ maxDeep = 40, onProgress = () => {} } = {}) {
+    const have = new Set(this.profiles().map((p) => p.wallet));
+    const cands = this.db.prepare("SELECT wallet, sources FROM candidates WHERE sources LIKE '%early on %'").all()
+      .map((r) => ({ wallet: r.wallet, ...JSON.parse(r.sources) }))
+      .filter((c) => !have.has(c.wallet))
+      .sort((a, b) => b.sources.length - a.sources.length);
+    onProgress({ phase: 'prefilter', done: 0, total: cands.length });
+    const profits = await this.g.walletProfits(cands.map((c) => c.wallet), '30d');
+    const { keep } = prefilter(profits, { days: 30, maxBuysPerDay: 40 });
+    const bySrc = new Map(cands.map((c) => [c.wallet, c]));
+    const deep = keep.sort((a, b) => (bySrc.get(b.wallet)?.sources.length ?? 0) - (bySrc.get(a.wallet)?.sources.length ?? 0)).slice(0, maxDeep);
+    const save = this.db.prepare(`INSERT INTO wallet_profiles (wallet, profile, built_at, source) VALUES (?, ?, ?, 'early-study')
+      ON CONFLICT(wallet) DO UPDATE SET profile = excluded.profile, built_at = excluded.built_at`);
+    let done = 0;
+    for (const k of deep) {
+      onProgress({ phase: 'reading early wallets', done, total: deep.length });
+      try {
+        const p = await deepProfile(this.g, k.wallet, { log: this.log });
+        p.discovery = { sources: bySrc.get(k.wallet)?.sources ?? [], tags: bySrc.get(k.wallet)?.tags ?? [], realizedUsd30d: k.realizedUsd30d, buys30d: k.buys30d };
+        save.run(k.wallet, JSON.stringify(p), Date.now());
+      } catch (e) {
+        this.log(`could not profile ${k.wallet}: ${e.message}`);
+        if (e.code === 'RATE') break;
+      }
+      done += 1;
+    }
+    const measured = await this.runWalletMeasure({ wallets: deep.map((k) => k.wallet), onProgress });
+    return { candidates: cands.length, kept: keep.length, profiled: done, measured };
   }
 
   async exportJinx() {

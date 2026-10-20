@@ -67,3 +67,31 @@ test('SOL price comes from GMGN gas-price with its source and time', async () =>
   const rate = await g.solUsd();
   assert.deepEqual(rate, { usdPerSol: 105.98, source: 'GMGN gas-price', at: 1_000_000 });
 });
+
+test('klineRange pages through GMGN 100-candle windows and returns one ordered series', async () => {
+  // GMGN returns at most 100 candles per request: the newest 100 inside [from, to].
+  const { api, calls } = fakeApi({
+    getTokenKline: async (chain, addr, res, fromMs, toMs) => {
+      const out = [];
+      for (let t = fromMs; t < toMs; t += 300_000) out.push({ time: t, open: '1', close: '2', high: '3', low: '0.5', volume: '10' });
+      return { list: out.slice(-100) };
+    },
+  });
+  const g = new Gmgn(opts(api));
+  const T0 = 1_792_000_000; // real epoch seconds; GMGN candle times arrive in milliseconds
+  const k = await g.klineRange('MINT', '5m', T0, T0 + 24 * 3600);
+  assert.equal(k.resolution, '5m');
+  assert.equal(k.resSec, 300);
+  assert.equal(k.candles.length, 288, 'one day of 5-minute candles');
+  assert.equal(calls.length, 3, '288 candles need three 100-candle requests');
+  assert.ok(k.candles.every((c, i) => i === 0 || c.t > k.candles[i - 1].t), 'sorted, no duplicates');
+  assert.deepEqual(Object.keys(k.candles[0]).sort(), ['close', 'high', 'low', 'open', 't', 'volumeUsd']);
+  assert.equal(k.candles[0].high, 3);
+});
+
+test('trending reads the rank list whether GMGN wraps it in data or not', async () => {
+  const { api } = fakeApi({ getTrendingSwaps: async (chain, interval) => (interval === '1m' ? { code: 0, data: { rank: [{ address: 'A' }] } } : { rank: [{ address: 'B' }] }) });
+  const g = new Gmgn(opts(api));
+  assert.deepEqual((await g.trending('1m')).rank, [{ address: 'A' }]);
+  assert.deepEqual((await g.trending('1h')).rank, [{ address: 'B' }]);
+});

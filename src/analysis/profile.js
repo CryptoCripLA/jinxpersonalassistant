@@ -38,6 +38,10 @@ export function gmgnStats(stats) {
     avgHoldSec: num(s.pnl_stat?.avg_holding_period),
     feesUsd: (num(s.bought_fee) ?? 0) + (num(s.sold_fee) ?? 0),
     solBalance: num(s.native_balance),
+    // GMGN's own return buckets over the period: how many coins ended above 5x, 2-5x, ...
+    returnBuckets: s.pnl_stat
+      ? { over5x: num(s.pnl_stat.pnl_gt_5x_num), from2to5x: num(s.pnl_stat.pnl_2x_5x_num), upTo2x: num(s.pnl_stat.pnl_0x_2x_num), loss: (num(s.pnl_stat.pnl_nd5_0x_num) ?? 0) + (num(s.pnl_stat.pnl_lt_nd5_num) ?? 0) }
+      : null,
     identity: s.common
       ? {
           name: s.common.name || '',
