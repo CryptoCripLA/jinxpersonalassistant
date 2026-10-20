@@ -11,6 +11,7 @@ import { cleanLabel, roundNice } from '../text/plain.js';
 const INSIDER_TAGS = new Set(['creator', 'dev_team', 'bundler', 'rat_trader', 'entrapment']);
 const BOT_TAGS = new Set(['dex_bot', 'sandwich_bot', 'mev_bot']);
 export const MAX_BUYS_PER_DAY = 20; // generous: 1-3 coins a day plus adds still fits well under this
+export const MIN_BUYS_30D = 10;
 
 export function tradersToCandidates(list, { symbol, why }) {
   const out = [];
@@ -41,11 +42,13 @@ export function prefilter(rows, { days = 30, maxBuysPerDay = MAX_BUYS_PER_DAY } 
     const buys = Number(r.buy ?? 0);
     const profit = Number(r.realized_profit ?? 0);
     if (buys === 0) dropped[w] = 'no trades in the last 30 days';
+    else if (buys < MIN_BUYS_30D) dropped[w] = `only ${buys} buys in 30 days — too few to judge`;
     else if (buys / days > maxBuysPerDay) dropped[w] = `about ${roundNice(buys / days)} buys a day — too busy to copy on a small account`;
     else if (profit <= 0) dropped[w] = 'lost money over the last 30 days';
     else keep.push({ wallet: w, realizedUsd30d: profit, buys30d: buys, sells30d: Number(r.sell ?? 0) });
   }
-  keep.sort((a, b) => b.realizedUsd30d - a.realizedUsd30d);
+  // Selective traders first: profit per buy, not total profit (total favours busy bots).
+  keep.sort((a, b) => b.realizedUsd30d / b.buys30d - a.realizedUsd30d / a.buys30d);
   return { keep, dropped };
 }
 
