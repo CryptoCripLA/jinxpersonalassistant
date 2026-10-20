@@ -185,7 +185,7 @@ async function loadCoins() {
 
 // ---------- copy desk
 const STATE_WORDS = {
-  observed: 'Would have copied (desk was off)', skipped: 'Skipped', awaiting_approval: 'Waiting for you', approved: 'Sending',
+  observed: 'Would have copied (desk was off)', skipped: 'Skipped', awaiting_approval: 'Waiting for you', checking: 'Checking your limits', approved: 'Sending',
   sending: 'Sending', submitted: 'Sent, waiting for GMGN', confirmed: 'Done', failed: 'Failed', unknown: 'Unclear, check GMGN', expired: 'Too late', rejected: 'You said no',
 };
 const MODE_HELP = {

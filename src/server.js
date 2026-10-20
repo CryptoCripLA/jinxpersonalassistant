@@ -82,7 +82,11 @@ const ROUTES = {
   'POST /api/export/jinx': () => svc.exportJinx(),
 };
 
+const ALLOWED_HOSTS = new Set([`127.0.0.1:${PORT}`, `localhost:${PORT}`]);
+
 const server = createServer(async (req, res) => {
+  // DNS-rebinding guard: only answer requests addressed to this machine by name.
+  if (!ALLOWED_HOSTS.has(String(req.headers.host ?? '').toLowerCase())) return send(res, 421, 'wrong host', 'text/plain');
   const url = new URL(req.url, `http://${req.headers.host}`);
   try {
     if (url.pathname.startsWith('/api/')) {

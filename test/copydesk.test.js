@@ -187,3 +187,32 @@ test("take-profit / stop-loss from the settings sheet ride on the buy as GMGN co
     { order_type: 'loss_stop', side: 'sell', price_scale: '35', sell_ratio: '100' },
   ]);
 });
+
+test('if GMGN confirmed a buy without a coin count, the copy still sells (by percentage)', async () => {
+  const h = harness();
+  h.desk.g.queryOrder = async (id) => ({ order_id: id, status: 'confirmed', hash: 'h', report: { input_amount: '250000000', gas_usd: '0.01' } });
+  h.desk.setConfig({ mode: 'confirm' });
+  h.desk.watch('W', watch);
+  await h.desk.tick();
+  h.feed.rows = [buyRow('b1', h.nowS())];
+  await h.desk.tick();
+  await h.desk.approve(h.desk.intents()[0].id);
+  await h.desk.reconcile();
+  h.desk.g.walletTokenBalance = async () => ({ balance: '500' });
+  h.feed.rows = [{ ...buyRow('s1', h.nowS()), event_type: 'sell', token_amount: '500' }, ...h.feed.rows];
+  await h.desk.tick();
+  assert.equal(h.sent[1].input_amount, '0');
+  assert.equal(h.sent[1].input_amount_bps, '5000', 'the wallet sold half, so the copy sells 50% of its balance');
+});
+
+test('two approvals racing for the same trade send only one order', async () => {
+  const h = harness();
+  h.desk.setConfig({ mode: 'confirm' });
+  h.desk.watch('W', watch);
+  await h.desk.tick();
+  h.feed.rows = [buyRow('b1', h.nowS())];
+  await h.desk.tick();
+  const id = h.desk.intents()[0].id;
+  await Promise.all([h.desk.approve(id), h.desk.approve(id), h.desk.execute(id)]);
+  assert.equal(h.sent.length, 1);
+});

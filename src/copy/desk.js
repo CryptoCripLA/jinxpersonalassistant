@@ -19,7 +19,7 @@ import { usd, usdToLamports, lamportsToUsd } from '../money/usd.js';
 import { usdShort } from '../analysis/settings.js';
 
 export const SOL_MINT = 'So11111111111111111111111111111111111111112';
-const ACTIVE_SPEND = ['sending', 'submitted', 'confirmed', 'unknown'];
+const ACTIVE_SPEND = ['checking', 'approved', 'sending', 'submitted', 'confirmed', 'unknown'];
 
 export const DEFAULT_CONFIG = {
   mode: 'off',
@@ -84,6 +84,16 @@ export class CopyDesk {
     const detail = { ...cur.detail, ...detailPatch };
     this.db.prepare('UPDATE copy_intents SET state = ?, detail = ?, updated_at = ?, order_id = COALESCE(?, order_id), tx_hash = COALESCE(?, tx_hash) WHERE id = ?')
       .run(state, JSON.stringify(detail), this.now(), extra.orderId ?? null, extra.txHash ?? null, id);
+  }
+
+  // Compare-and-set: moves an intent only if it is still in the expected state.
+  // This is the single gate that stops two callers from acting on the same intent.
+  claim(id, from, to, detailPatch = {}) {
+    const cur = this.intent(id);
+    if (!cur || cur.state !== from) return false;
+    const res = this.db.prepare('UPDATE copy_intents SET state = ?, detail = ?, updated_at = ? WHERE id = ? AND state = ?')
+      .run(to, JSON.stringify({ ...cur.detail, ...detailPatch }), this.now(), id, from);
+    return res.changes === 1;
   }
 
   createIntent(w, r, side, state, detail) {
@@ -215,10 +225,17 @@ export class CopyDesk {
       fraction = 1;
       how = "Could not read the wallet's remaining coins, so the whole copy is sold (getting out is never blocked).";
     }
-    const raw = BigInt(pos.tokens_raw);
-    const sellRaw = fraction >= 0.98 ? raw : (raw * BigInt(Math.round(fraction * 1e6))) / 1_000_000n;
-    if (sellRaw <= 0n) return null;
-    const id = this.createIntent(w, r, 'sell', 'approved', { fraction, sellRaw: sellRaw.toString(), reason: how, positionOpenedAt: pos.opened_at });
+    const raw = BigInt(pos.tokens_raw || '0');
+    let detail;
+    if (raw > 0n) {
+      const sellRaw = fraction >= 0.98 ? raw : (raw * BigInt(Math.round(fraction * 1e6))) / 1_000_000n;
+      if (sellRaw <= 0n) return null;
+      detail = { fraction, sellRaw: sellRaw.toString(), reason: how, positionOpenedAt: pos.opened_at };
+    } else {
+      // GMGN confirmed the buy without a coin count: sell the same share of the wallet balance instead
+      detail = { fraction, sellBps: Math.max(1, Math.min(10000, Math.round(fraction * 10000))), reason: `${how} Sold by percentage because GMGN did not report how many coins the copy received.`, positionOpenedAt: pos.opened_at };
+    }
+    const id = this.createIntent(w, r, 'sell', 'approved', detail);
     if (id) await this.execute(id);
     return id;
   }
@@ -227,15 +244,16 @@ export class CopyDesk {
     const i = this.intent(id);
     if (!i || i.state !== 'awaiting_approval') return i?.state ?? 'missing';
     if (i.detail.expiresAt && this.now() > i.detail.expiresAt) {
-      this.setState(id, 'expired', { reason: 'Approval came too late.' });
+      this.claim(id, 'awaiting_approval', 'expired', { reason: 'Approval came too late.' });
       return 'expired';
     }
+    if (!this.claim(id, 'awaiting_approval', 'checking', { approvedAt: this.now() })) return this.intent(id)?.state;
     const lim = await this.limitReason(i.detail.sizeUsd);
     if (lim) {
       this.setState(id, 'skipped', { reason: lim });
       return 'skipped';
     }
-    this.setState(id, 'approved', { approvedAt: this.now() });
+    this.setState(id, 'approved');
     await this.execute(id);
     return this.intent(id).state;
   }
@@ -247,7 +265,8 @@ export class CopyDesk {
 
   async execute(id) {
     const i = this.intent(id);
-    if (!i || i.state !== 'approved') return;
+    // lock first, before any await, so a second caller can never send the same intent
+    if (!this.claim(id, 'approved', 'sending', { sendStartedAt: this.now() })) return;
     const w = this.watches().find((x) => x.wallet === i.wallet);
     const s = w?.settings ?? {};
     const me = await this.myWalletFn();
@@ -264,18 +283,21 @@ export class CopyDesk {
       params = { from_address: me, input_token: i.token, output_token: SOL_MINT, input_amount: i.detail.sellRaw };
     }
     const slippage = s.slippage ?? 30;
-    this.setState(id, 'sending', { sendStartedAt: this.now() });
-    let quote;
-    try {
-      quote = await this.g.quote({ ...params, slippage });
-    } catch (e) {
-      this.setState(id, 'failed', { reason: `GMGN could not price this trade, so nothing was sent: ${e.message}` });
-      return;
+    const byPercent = i.side === 'sell' && i.detail.sellBps;
+    if (byPercent) params = { ...params, input_amount: '0', input_amount_bps: String(i.detail.sellBps) };
+    let quote = null;
+    if (!byPercent) {
+      try {
+        quote = await this.g.quote({ ...params, slippage });
+      } catch (e) {
+        this.setState(id, 'failed', { reason: `GMGN could not price this trade, so nothing was sent: ${e.message}` });
+        return;
+      }
     }
     const body = {
       ...params,
       slippage,
-      min_output_amount: String(quote.min_output_amount),
+      ...(quote ? { min_output_amount: String(quote.min_output_amount) } : {}),
       is_anti_mev: s.antiMev !== false,
       priority_fee: String(s.priorityFeeSol ?? 0.001),
       tip_fee: String(s.tipFeeSol ?? 0.001),
@@ -290,7 +312,7 @@ export class CopyDesk {
     }
     try {
       const res = await this.g.swap(body);
-      this.setState(id, 'submitted', { quoteOut: quote.output_amount, minOut: quote.min_output_amount }, { orderId: res.order_id, txHash: res.hash });
+      this.setState(id, 'submitted', { quoteOut: quote?.output_amount ?? null, minOut: quote?.min_output_amount ?? null }, { orderId: res.order_id, txHash: res.hash });
     } catch (e) {
       if (e.answered) {
         this.setState(id, 'failed', { reason: `GMGN refused the order: ${e.message}` });
@@ -342,13 +364,14 @@ export class CopyDesk {
     }
     const pos = this.openFor(i.wallet, i.token);
     if (!pos) return;
-    const sold = BigInt(rep.input_amount ?? i.detail.sellRaw);
-    const held = BigInt(pos.tokens_raw);
-    const left = held > sold ? held - sold : 0n;
+    const held = BigInt(pos.tokens_raw || '0');
+    const sold = held === 0n ? 0n : BigInt(rep.input_amount ?? i.detail.sellRaw ?? '0');
+    const left = held === 0n ? 0n : held > sold ? held - sold : 0n;
+    const shareSold = held === 0n ? Math.min(1, (i.detail.sellBps ?? 10000) / 10000) : Number(sold) / Number(held);
     const proceeds = lamportsToUsd(BigInt(rep.output_amount ?? 0), rate) ?? 0;
-    const costShare = pos.cost_usd * (Number(sold) / Number(held));
+    const costShare = pos.cost_usd * shareSold;
     this.db.prepare(`UPDATE copy_positions SET tokens_raw = ?, cost_usd = ?, realized_usd = realized_usd + ?, fees_usd = fees_usd + ?, status = ?
       WHERE token = ? AND wallet = ? AND opened_at = ?`)
-      .run(left.toString(), pos.cost_usd - costShare, proceeds - costShare - gas, gas, left === 0n ? 'closed' : 'open', pos.token, pos.wallet, pos.opened_at);
+      .run(left.toString(), pos.cost_usd - costShare, proceeds - costShare - gas, gas, (held === 0n ? shareSold >= 0.98 : left === 0n) ? 'closed' : 'open', pos.token, pos.wallet, pos.opened_at);
   }
 }
