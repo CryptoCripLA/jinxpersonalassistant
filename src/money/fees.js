@@ -31,6 +31,9 @@ export function tradeCosts(model, { usd: amount, venue = 'curve', poolFeePct = n
   if (venue === 'curve') {
     venuePct = model.curveFeePct;
     venueSource = 'Pump.fun bonding-curve fee (GMGN docs)';
+  } else if (venue === 'measured' && isNum(poolFeePct)) {
+    venuePct = poolFeePct;
+    venueSource = "venue fee GMGN recorded on the copied wallet's own trade";
   } else if (isNum(poolFeePct)) {
     venuePct = poolFeePct;
     venueSource = 'pool fee reported by GMGN';
