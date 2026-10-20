@@ -8,12 +8,15 @@ const S = 1000;
 const MIN = 60 * S;
 
 export class GmgnError extends Error {
-  constructor(message, { code, route, resetAt } = {}) {
+  // answered=true means GMGN's server replied with an error, so the request was
+  // definitely not carried out. answered=false means we cannot know (network failure).
+  constructor(message, { code, route, resetAt, answered = false } = {}) {
     super(message);
     this.name = 'GmgnError';
     this.code = code;
     this.route = route;
     this.resetAt = resetAt;
+    this.answered = answered;
   }
 }
 
@@ -52,7 +55,7 @@ export class Gmgn {
     }
     const weight = ROUTE_WEIGHTS[route] ?? 1;
     if (this.blockedRoutes.has(route) || this.bucket.delayFor(weight).impossible) {
-      throw new GmgnError(`This GMGN request (${route}) needs a bigger GMGN API plan than the one on your key.`, { code: 'PLAN', route });
+      throw new GmgnError(`This GMGN request (${route}) needs a bigger GMGN API plan than the one on your key.`, { code: 'PLAN', route, answered: true });
     }
     const wait = this.bucket.take(weight);
     if (wait > 0) await this.sleep(wait);
@@ -72,13 +75,13 @@ export class Gmgn {
     if (e.status === 429 || /RATE_LIMIT/.test(e.apiError ?? '')) {
       const resetAt = (e.resetAtUnix ?? Math.floor(this.now() / 1000) + 300) * 1000;
       this.bucket.banUntil(resetAt);
-      return new GmgnError(`GMGN paused requests until ${new Date(resetAt).toISOString().slice(11, 19)} UTC (rate limit). Waiting instead of retrying.`, { code: 'RATE', route, resetAt });
+      return new GmgnError(`GMGN paused requests until ${new Date(resetAt).toISOString().slice(11, 19)} UTC (rate limit). Waiting instead of retrying.`, { code: 'RATE', route, resetAt, answered: true });
     }
     if (e.apiError === 'PLAN_UPGRADE_REQUIRED' || e.apiError === 'PRO_PLAN_REQUIRED') {
       this.blockedRoutes.add(route);
-      return new GmgnError(`GMGN says your API plan does not include ${route}: ${e.apiMessage ?? e.message}`, { code: 'PLAN', route });
+      return new GmgnError(`GMGN says your API plan does not include ${route}: ${e.apiMessage ?? e.message}`, { code: 'PLAN', route, answered: true });
     }
-    return new GmgnError(`GMGN ${route} error: ${e.apiMessage ?? e.message}`, { code: e.apiError, route });
+    return new GmgnError(`GMGN ${route} error: ${e.apiMessage ?? e.message}`, { code: e.apiError ?? 'API', route, answered: true });
   }
 
   // ---- account & prices
@@ -133,10 +136,15 @@ export class Gmgn {
   }
 
   // ---- wallets
-  walletActivity(wallet, { cursor, limit = 50 } = {}) {
+  walletActivity(wallet, { cursor, limit = 50, fresh = false } = {}) {
     const extra = { limit };
     if (cursor) extra.cursor = cursor;
-    return this.call('walletActivity', () => this.api.getWalletActivity(CHAIN, wallet, extra), { cacheKey: `wa:${wallet}:${cursor ?? ''}:${limit}`, ttl: 2 * MIN });
+    const cache = fresh ? {} : { cacheKey: `wa:${wallet}:${cursor ?? ''}:${limit}`, ttl: 2 * MIN };
+    return this.call('walletActivity', () => this.api.getWalletActivity(CHAIN, wallet, extra), cache);
+  }
+
+  walletTokenBalance(wallet, token) {
+    return this.call('walletTokenBalance', () => this.api.getWalletTokenBalance(CHAIN, wallet, token));
   }
 
   async walletActivityPages(wallet, pages = 4) {
@@ -200,6 +208,10 @@ export class Gmgn {
   }
 
   // ---- trading (never cached)
+  quote({ from_address, input_token, output_token, input_amount, slippage }) {
+    return this.call('quote', () => this.api.quoteOrder(CHAIN, from_address, input_token, output_token, input_amount, slippage));
+  }
+
   swap(params) {
     return this.call('swap', () => this.api.swap({ chain: CHAIN, ...params }));
   }
