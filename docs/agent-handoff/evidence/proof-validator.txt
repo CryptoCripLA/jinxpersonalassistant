@@ -1,0 +1,6 @@
+$ python3 ~/.claude/kayjay-tools/verify_proof.py docs/agent-handoff/proof.json  (2026-10-21T00:40:20Z, commit 245b5b4)
+FAIL: proof ledger contains 3 issue(s)
+ - T7: not complete (status='partial')
+ - T12: not complete (status='partial')
+ - E5: not complete (status='partial')
+exit=1

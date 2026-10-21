@@ -6,7 +6,11 @@
       "id": "T1",
       "requirement": "Show my actual USD balance and trades; explain 'GMGN paused' and 'wallet unavailable'",
       "status": "complete",
-      "changed_paths": ["src/service.js", "public/js/views/today.js", "test/today.test.js"],
+      "changed_paths": [
+        "src/service.js",
+        "public/js/views/today.js",
+        "test/today.test.js"
+      ],
       "verification_command": "npm test && curl -s http://127.0.0.1:8899/api/account",
       "exit_code": 0,
       "evidence_path": "docs/agent-handoff/evidence/live-2026-10-21.md",
@@ -16,7 +20,11 @@
       "id": "T2",
       "requirement": "Daily USD profit target, with wallets that achieved comparable copyable returns",
       "status": "complete",
-      "changed_paths": ["src/analysis/mission.js", "src/intel/advisor.js", "test/advisor.test.js"],
+      "changed_paths": [
+        "src/analysis/mission.js",
+        "src/intel/advisor.js",
+        "test/advisor.test.js"
+      ],
       "verification_command": "npm test && curl -s http://127.0.0.1:8899/api/today",
       "exit_code": 0,
       "evidence_path": "docs/agent-handoff/evidence/live-2026-10-21.md",
@@ -26,37 +34,60 @@
       "id": "T3",
       "requirement": "Find traders for me, with fit and why",
       "status": "complete",
-      "changed_paths": ["src/intel/advisor.js", "src/analysis/traderType.js", "public/js/cards.js", "test/advisor.test.js"],
+      "changed_paths": [
+        "src/intel/advisor.js",
+        "src/analysis/traderType.js",
+        "src/analysis/explosive.js",
+        "public/js/cards.js",
+        "test/advisor.test.js",
+        "test/today.test.js",
+        "test/explosive.test.js"
+      ],
       "verification_command": "npm test && curl -s http://127.0.0.1:8899/api/today",
       "exit_code": 0,
       "evidence_path": "docs/agent-handoff/evidence/live-2026-10-21.md",
-      "observed_result": "112 wallets measured, 2 close matches recommended with reasons, 110 skipped each with its reason."
+      "observed_result": "179 wallets measured, 2 close matches recommended, 177 skipped with the deal-breaker first; 18 untrusted replays never ranked or quoted."
     },
     {
       "id": "T4",
       "requirement": "Trader types, coins per day, hold time, last trade, buying/selling behaviour, realized profits",
       "status": "complete",
-      "changed_paths": ["src/analysis/traderType.js", "public/js/cards.js", "public/js/views/wallets.js", "test/advisor.test.js"],
+      "changed_paths": [
+        "src/analysis/traderType.js",
+        "public/js/cards.js",
+        "public/js/views/wallets.js",
+        "test/advisor.test.js"
+      ],
       "verification_command": "npm test",
       "exit_code": 0,
       "evidence_path": "docs/agent-handoff/evidence/test-suite.txt",
-      "observed_result": "167/167 tests pass, incl. trader types and the launch-timing sniper sentence fix; live cards show type, fit and exit habits."
+      "observed_result": "174/174 tests pass, incl. trader types, the launch-timing sniper sentence and deal-breaker ordering; live cards show type, fit and exit habits."
     },
     {
       "id": "T5",
       "requirement": "Simulated results at my trade size with delays, slippage, fees, losses and exits",
       "status": "complete",
-      "changed_paths": ["src/intel/wallets.js", "src/analysis/simulate.js", "test/explosive.test.js"],
+      "changed_paths": [
+        "src/intel/wallets.js",
+        "src/analysis/simulate.js",
+        "test/explosive.test.js"
+      ],
       "verification_command": "npm test && curl -s http://127.0.0.1:8899/api/wallets/explosive",
       "exit_code": 0,
       "evidence_path": "docs/agent-handoff/evidence/live-2026-10-21.md",
-      "observed_result": "112 wallets replayed with $25 copies, 5 s delay, 14-day period; per-trade follower net after fees."
+      "observed_result": "179 wallets replayed with $25 copies, 5 s delay, 14-day period; per-trade follower net after fees; 18 sub-10-minute replays marked untrusted."
     },
     {
       "id": "T6",
       "requirement": "Explosive opportunities with evidence, wallets, entry/exit timing; theoretical vs executable separated",
       "status": "complete",
-      "changed_paths": ["src/intel/advisor.js", "src/intel/study.js", "src/analysis/history.js", "public/js/cards.js", "test/advisor.test.js"],
+      "changed_paths": [
+        "src/intel/advisor.js",
+        "src/intel/study.js",
+        "src/analysis/history.js",
+        "public/js/cards.js",
+        "test/advisor.test.js"
+      ],
       "verification_command": "npm test && curl -s http://127.0.0.1:8899/api/history",
       "exit_code": 0,
       "evidence_path": "docs/agent-handoff/evidence/live-2026-10-21.md",
@@ -66,7 +97,14 @@
       "id": "T7",
       "requirement": "One-click copy (automatic / ask me first) plus individual Buy/Sell, copy settings in plain English",
       "status": "partial",
-      "changed_paths": ["public/js/cards.js", "src/server.js", "src/trade/manual.js", "src/copy/desk.js", "test/trader.test.js", "test/copydesk.test.js"],
+      "changed_paths": [
+        "public/js/cards.js",
+        "src/server.js",
+        "src/trade/manual.js",
+        "src/copy/desk.js",
+        "test/trader.test.js",
+        "test/copydesk.test.js"
+      ],
       "verification_command": "npm test",
       "exit_code": 0,
       "evidence_path": "docs/agent-handoff/evidence/test-suite.txt",
@@ -76,17 +114,29 @@
       "id": "T8",
       "requirement": "A proactive analyst that explains screens automatically",
       "status": "complete",
-      "changed_paths": ["src/assistant/brief.js", "public/js/assistant.js", "src/assistant/grok.js", "test/brief.test.js"],
-      "verification_command": "npm test",
+      "changed_paths": [
+        "src/assistant/brief.js",
+        "public/js/assistant.js",
+        "src/assistant/grok.js",
+        "src/assistant/router.js",
+        "test/brief.test.js",
+        "test/assistant-context.test.js",
+        "test/grok.test.js"
+      ],
+      "verification_command": "npm test && POST /api/ask 'Which wallet repeatedly catches explosive moves?'",
       "exit_code": 0,
-      "evidence_path": "docs/agent-handoff/evidence/test-suite.txt",
-      "observed_result": "Brief tests pass for every view; briefs appear on arrival in the browser; Grok answered live through read-only tools."
+      "evidence_path": "docs/agent-handoff/evidence/live-2026-10-21.md",
+      "observed_result": "Live answer names Fjq4 (Today's top pick) and explains why ohUc and 8P2U are not for the owner; briefs never quote an untrusted replay."
     },
     {
       "id": "T9",
       "requirement": "USD everywhere",
       "status": "complete",
-      "changed_paths": ["src/money/usd.js", "src/assistant/explain.js", "test/assistant-context.test.js"],
+      "changed_paths": [
+        "src/money/usd.js",
+        "src/assistant/explain.js",
+        "test/assistant-context.test.js"
+      ],
       "verification_command": "npm test",
       "exit_code": 0,
       "evidence_path": "docs/agent-handoff/evidence/test-suite.txt",
@@ -96,7 +146,11 @@
       "id": "T10",
       "requirement": "Easy by default; tables secondary",
       "status": "complete",
-      "changed_paths": ["public/index.html", "public/app.css", "public/js/views/today.js"],
+      "changed_paths": [
+        "public/index.html",
+        "public/app.css",
+        "public/js/views/today.js"
+      ],
       "verification_command": "Open http://localhost:8899/#/today in the owner's Chrome via KAYJAY",
       "exit_code": 0,
       "evidence_path": "docs/agent-handoff/evidence/chrome-2026-10-21.md",
@@ -106,7 +160,12 @@
       "id": "T11",
       "requirement": "Editable preferences: 7x-19x+, about $25, 1-3 coins/day",
       "status": "complete",
-      "changed_paths": ["src/service.js", "src/analysis/profile.js", "public/js/views/today.js", "test/today.test.js"],
+      "changed_paths": [
+        "src/service.js",
+        "src/analysis/profile.js",
+        "public/js/views/today.js",
+        "test/today.test.js"
+      ],
       "verification_command": "npm test && curl -s http://127.0.0.1:8899/api/today",
       "exit_code": 0,
       "evidence_path": "docs/agent-handoff/evidence/live-2026-10-21.md",
@@ -116,7 +175,11 @@
       "id": "T12",
       "requirement": "Preserve the repo, use Impeccable, full functionality",
       "status": "partial",
-      "changed_paths": ["PRODUCT.md", "DESIGN.md", ".impeccable/surfaces/public-index-html.md"],
+      "changed_paths": [
+        "PRODUCT.md",
+        "DESIGN.md",
+        ".impeccable/surfaces/public-index-html.md"
+      ],
       "verification_command": "npm test",
       "exit_code": 0,
       "evidence_path": "docs/agent-handoff/evidence/test-suite.txt",
@@ -126,7 +189,13 @@
       "id": "E2",
       "requirement": "Copy proven wallets that take profit, max size and hard stop, watch 1-2 weeks before scaling",
       "status": "complete",
-      "changed_paths": ["src/analysis/traderType.js", "src/copy/desk.js", "src/service.js", "test/copydesk.test.js", "test/edge.test.js"],
+      "changed_paths": [
+        "src/analysis/traderType.js",
+        "src/copy/desk.js",
+        "src/service.js",
+        "test/copydesk.test.js",
+        "test/edge.test.js"
+      ],
       "verification_command": "npm test",
       "exit_code": 0,
       "evidence_path": "docs/agent-handoff/evidence/test-suite.txt",
@@ -136,7 +205,12 @@
       "id": "E3",
       "requirement": "Migration sniping over launch sniping",
       "status": "complete",
-      "changed_paths": ["src/intel/advisor.js", "src/service.js", "public/js/views/today.js", "test/advisor.test.js"],
+      "changed_paths": [
+        "src/intel/advisor.js",
+        "src/service.js",
+        "public/js/views/today.js",
+        "test/advisor.test.js"
+      ],
       "verification_command": "npm test && curl -s http://127.0.0.1:8899/api/history",
       "exit_code": 0,
       "evidence_path": "docs/agent-handoff/evidence/live-2026-10-21.md",
@@ -146,7 +220,12 @@
       "id": "E4",
       "requirement": "Filters: mint/freeze revoked, dev not dumping, holder concentration, socials, liquidity/volume",
       "status": "complete",
-      "changed_paths": ["src/analysis/filters.js", "src/intel/pulse.js", "src/intel/coin.js", "test/edge.test.js"],
+      "changed_paths": [
+        "src/analysis/filters.js",
+        "src/intel/pulse.js",
+        "src/intel/coin.js",
+        "test/edge.test.js"
+      ],
       "verification_command": "npm test",
       "exit_code": 0,
       "evidence_path": "docs/agent-handoff/evidence/test-suite.txt",
@@ -156,7 +235,11 @@
       "id": "E5",
       "requirement": "Mechanical exits: partial take-profits 2x/3x/5x, trailing stop, hard stop",
       "status": "partial",
-      "changed_paths": ["src/trade/manual.js", "src/analysis/profile.js", "test/edge.test.js"],
+      "changed_paths": [
+        "src/trade/manual.js",
+        "src/analysis/profile.js",
+        "test/edge.test.js"
+      ],
       "verification_command": "npm test",
       "exit_code": 0,
       "evidence_path": "docs/agent-handoff/evidence/test-suite.txt",
@@ -166,7 +249,12 @@
       "id": "M8",
       "requirement": "7x+ explosive-discovery study: signals before vs too late",
       "status": "complete",
-      "changed_paths": ["src/analysis/history.js", "src/intel/study.js", "public/js/views/history.js", "test/history.test.js"],
+      "changed_paths": [
+        "src/analysis/history.js",
+        "src/intel/study.js",
+        "public/js/views/history.js",
+        "test/history.test.js"
+      ],
       "verification_command": "npm test && curl -s http://127.0.0.1:8899/api/history",
       "exit_code": 0,
       "evidence_path": "docs/agent-handoff/evidence/live-2026-10-21.md",
@@ -176,7 +264,9 @@
       "id": "M10",
       "requirement": "Run on the remote server and open in the owner's Chrome via KAYJAY",
       "status": "complete",
-      "changed_paths": ["src/server.js"],
+      "changed_paths": [
+        "src/server.js"
+      ],
       "verification_command": "Start-Process chrome http://localhost:8899/#/today via KAYJAY PowerShell",
       "exit_code": 0,
       "evidence_path": "docs/agent-handoff/evidence/chrome-2026-10-21.md",
