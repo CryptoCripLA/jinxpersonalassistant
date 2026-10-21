@@ -103,6 +103,27 @@ test('explosive wallets and a wallet\'s last coins come from the measured board,
   assert.equal(b.label, 'HISTORICAL + SIMULATED');
 });
 
+test('"which wallet catches explosive moves" recommends only wallets the advisor would copy, and says why it passed on the rest', async () => {
+  // live 2026-10-21: the answer named a 144-coins-a-day wallet as one "you could have copied"
+  // while Today had rejected it
+  const ex = { followerCaptured: { 3: 4, 5: 2 }, found: { 7: 5 }, edgeKeptPct: 60 };
+  const s = {
+    ...svc,
+    explosiveBoard: () => [
+      { wallet: 'BUSY', name: null, isExplosive: true, perActiveDayUsd: 82, explosive: ex, stageMix: {} },
+      { wallet: 'GOOD', name: '@good', isExplosive: true, perActiveDayUsd: 30, explosive: ex, stageMix: {} },
+    ],
+    today: async () => ({ traders: { picks: [{ wallet: 'GOOD', fit: { level: 'close', reasons: [] } }], skipped: [{ wallet: 'BUSY', fit: { level: 'no', reasons: ['Buys about 144 coins a day; you want 1 to 3.'] }, reasons: ['Buys about 144 coins a day; you want 1 to 3.'] }] } }),
+  };
+  const a = await answer('Which wallet repeatedly catches explosive moves?', {}, s);
+  assert.match(a.text, /@good/);
+  assert.doesNotMatch(a.text, /BUSY/);
+  assert.ok(a.evidence.some((e) => /BUSY/.test(e) && /144 coins a day/.test(e) && /not for you/i.test(e)));
+  const none = await answer('Which wallet repeatedly catches explosive moves?', {}, { ...s, explosiveBoard: () => s.explosiveBoard().slice(0, 1) });
+  assert.match(none.text, /No wallet that fits your style/);
+  assert.match(none.text, /144 coins a day/);
+});
+
 test('most promising right now comes from the live Explosive-now column', async () => {
   const a = await answer("What's the most promising opportunity right now?", {}, svc);
   assert.match(a.text, /ZAP/);

@@ -222,17 +222,31 @@ export async function answer(q, ctx, svc) {
       let board = (svc.explosiveBoard() ?? []).filter((r) => r.isExplosive);
       if (intent === 'before_graduation') board = board.filter((r) => ((r.stageMix?.early ?? 0) + (r.stageMix?.snipe ?? 0)) >= 0.5);
       if (!board.length) return reply('No measured wallet has handed a follower a 3x yet. The wallet measurement may still be running; check the Explosive wallets tab.', [], [{ label: 'Explosive wallets', kind: 'view', view: 'wallets' }]);
-      const top = board[0];
+      // the same verdicts as Today: a wallet the advisor rejected is never "one you could copy"
+      const t = svc.today ? await svc.today().catch(() => null) : null;
+      const rejected = new Map((t?.traders?.skipped ?? []).map((s) => [s.wallet, s.reasons?.[0] ?? 'it does not fit your style']));
+      const nameOf = (r) => r.name ?? short(r.wallet);
+      const copyable = board.filter((r) => !rejected.has(r.wallet));
+      const passed = board.filter((r) => rejected.has(r.wallet)).slice(0, 2).map((r) => `${nameOf(r)} also catches big moves, but it is not for you: ${rejected.get(r.wallet)}`);
+      if (!copyable.length) {
+        const r = board[0];
+        return reply(
+          `No wallet that fits your style has handed a follower a 3x yet. ${nameOf(r)} catches them, but I would not copy it: ${rejected.get(r.wallet)}`,
+          passed.slice(1),
+          [{ label: 'Explosive wallets', kind: 'view', view: 'wallets' }, { label: `Open ${nameOf(r)}`, kind: 'wallet', wallet: r.wallet }],
+        );
+      }
+      const top = copyable[0];
       const ex = top.explosive;
-      const name = top.name ?? short(top.wallet);
       return reply(
-        `${name} ${intent === 'before_graduation' ? 'gets in before graduation and ' : ''}catches explosive moves you could have copied: following it with $${size} a trade would have made about ${usdSigned(top.perActiveDayUsd)} per active day after fees and copy delay.`,
+        `${nameOf(top)} ${intent === 'before_graduation' ? 'gets in before graduation and ' : ''}catches explosive moves you could have copied: following it with $${size} a trade would have made about ${usdSigned(top.perActiveDayUsd)} per active day after fees and copy delay.`,
         [
           `Its buys went on to 7x+ ${ex.found?.[7] ?? 0} times; your copies would have caught 3x+ ${ex.followerCaptured?.[3] ?? 0} times and 5x+ ${ex.followerCaptured?.[5] ?? 0} times (SIMULATED).`,
           ex.edgeKeptPct != null ? `A follower kept ${pct(ex.edgeKeptPct / 100, 0)} of its edge after the copy delay.` : 'Edge kept after delay: unavailable.',
-          ...board.slice(1, 4).map((r) => `${r.name ?? short(r.wallet)}: ${usdSigned(r.perActiveDayUsd)} per active day, ${r.explosive.followerCaptured?.[3] ?? 0} copied 3x+ wins.`),
+          ...copyable.slice(1, 3).map((r) => `${nameOf(r)}: ${usdSigned(r.perActiveDayUsd)} per active day, ${r.explosive.followerCaptured?.[3] ?? 0} copied 3x+ wins.`),
+          ...passed,
         ],
-        [{ label: 'Explosive wallets', kind: 'view', view: 'wallets' }, ...board.slice(0, 3).map((r) => ({ label: `Open ${r.name ?? short(r.wallet)}`, kind: 'wallet', wallet: r.wallet }))],
+        [{ label: 'Explosive wallets', kind: 'view', view: 'wallets' }, ...copyable.slice(0, 3).map((r) => ({ label: `Open ${nameOf(r)}`, kind: 'wallet', wallet: r.wallet }))],
         null,
         'SIMULATED',
       );
