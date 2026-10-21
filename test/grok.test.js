@@ -54,6 +54,19 @@ test('X chatter uses Grok live X search, returns the summary with its links, and
   assert.equal(r2.cached, true);
 });
 
+test('the explosive-wallet tool never hands Grok a copy result the replay cannot vouch for', async () => {
+  const ex = { found: { 7: 6 }, captured: {}, followerCaptured: { 3: 5 }, edgeKeptPct: 2028, losses: 3 };
+  const svc = { explosiveBoard: () => [
+    { wallet: 'GOOD', name: null, isExplosive: true, replayTrusted: true, perActiveDayUsd: 40, coinsPerActiveDay: 2, explosive: { ...ex, edgeKeptPct: 60 }, flags: [] },
+    { wallet: 'FAKE', name: null, isExplosive: false, replayTrusted: false, perActiveDayUsd: 432, coinsPerActiveDay: 17, explosive: ex, flags: ['SNIPER_SPEED'] },
+  ] };
+  const rows = await new GrokAssistant({ apiKey: 'k', fetch: async () => { throw new Error('no network'); }, svc }).runTool('explosive_wallets', {});
+  const fake = rows.find((r) => r.wallet === 'FAKE');
+  assert.equal(fake.copyReplayTrusted, false);
+  assert.equal(fake.followerUsdPerActiveDay, null);
+  assert.equal(rows.find((r) => r.wallet === 'GOOD').followerUsdPerActiveDay, 40);
+});
+
 test('the key comes from the app\'s private secrets file or the environment', () => {
   assert.equal(grokFromEnv('/nonexistent', {}), null);
   assert.ok(grokFromEnv('/nonexistent', { XAI_API_KEY: 'xai-test' }));

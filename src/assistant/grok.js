@@ -20,6 +20,7 @@ How to answer:
 - Every money amount in US dollars. Never mention SOL, lamports or token units.
 - Use the tools for real numbers before answering, and quote them. Never invent prices, wallets, holders or results. If a tool has no data, say it is unavailable.
 - Keep apart: how high a coin went (the opportunity), what a wallet actually sold for (its capture), and what a $25 follower would have made (SIMULATED). Label results HISTORICAL, SIMULATED or LIVE.
+- When copyReplayTrusted is false, the wallet trades too fast for the price data: say its copy result cannot be trusted and do not quote one.
 - Be direct about the opportunity and honest about risk: name the evidence for and against. Never promise a multiple.
 - You cannot trade. If he wants to buy or sell, point him to the Buy/Sell panel; if he wants to copy a wallet, the Copy button.
 - Use x_chatter only when he asks about social buzz, narratives or X/Twitter; it costs money.
@@ -102,7 +103,7 @@ export class GrokAssistant {
       case 'live_board':
         return (s.pulseColumns()?.explosive ?? []).slice(0, 10).map((c) => ({ address: c.address, symbol: c.symbol, marketCapUsd: c.marketCapUsd, ageMinutes: c.ageSec != null ? Math.round(c.ageSec / 60) : null, score: c.momentum.score, stage: c.momentum.stage, reasons: c.momentum.reasons.slice(0, 4), warnings: c.momentum.warnings.slice(0, 3), explosiveWalletsIn: c.explosiveIn?.length ?? 0 }));
       case 'explosive_wallets':
-        return (s.explosiveBoard() ?? []).slice(0, 10).map((r) => ({ wallet: r.wallet, name: cleanLabel(r.name, 30), explosive: r.isExplosive, followerUsdPerActiveDay: r.perActiveDayUsd, coinsPerActiveDay: r.coinsPerActiveDay, bigMovesFound: r.explosive.found, walletCaptured: r.explosive.captured, followerCaptured: r.explosive.followerCaptured, edgeKeptPct: r.explosive.edgeKeptPct, losses: r.explosive.losses, flags: r.flags }));
+        return (s.explosiveBoard() ?? []).slice(0, 10).map((r) => ({ wallet: r.wallet, name: cleanLabel(r.name, 30), explosive: r.isExplosive, copyReplayTrusted: r.replayTrusted !== false, followerUsdPerActiveDay: r.replayTrusted === false ? null : r.perActiveDayUsd, coinsPerActiveDay: r.coinsPerActiveDay, bigMovesFound: r.explosive.found, walletCaptured: r.explosive.captured, followerCaptured: r.explosive.followerCaptured, edgeKeptPct: r.explosive.edgeKeptPct, losses: r.explosive.losses, flags: r.flags }));
       case 'wallet_recent': {
         const w = s.walletExplosive(a.wallet);
         return (w?.outcomes ?? []).slice().sort((p, q) => q.entryTs - p.entryTs).slice(0, Math.max(1, Math.min(20, a.count || 10))).map((o) => ({ symbol: cleanLabel(o.symbol, 16), entryMarketCapUsd: o.entryMcapUsd, coinWentTo: o.tokenMaxMultiple, walletSoldAt: o.walletCaptured, heldMinutes: o.holdSec != null ? Math.round(o.holdSec / 60) : null, follower25UsdResult: o.followerNetUsd }));

@@ -22,8 +22,12 @@ export function traderCard(p, hooks, { targetUsd = null } = {}) {
       fact('Coins per day', isNum(p.coinsPerDay) ? `${Math.round(p.coinsPerDay * 10) / 10}` : 'n/a', '', 'wallets.perday'),
       fact('Usually holds', duration(p.holdSec)),
       fact('Last active', isNum(p.lastActiveSec) ? `${duration(p.lastActiveSec)} ago` : 'n/a'),
-      fact(`Your $${p.copy.sizeUsd} copies`, `${usdSigned(p.copy.netUsd)} net`, signClass(p.copy.netUsd), 'wallets.follower')),
-    h('p', { class: 'rec-sub' }, label('SIMULATED'), ` Last ${p.copy.trades} trades, ${p.copy.wins ?? 0} won and ${p.copy.losses ?? 0} lost, after fees and copy delay.`),
+      p.copy.trusted === false
+        ? fact(`Your $${p.copy.sizeUsd} copies`, 'not trustworthy', '', 'wallets.follower')
+        : fact(`Your $${p.copy.sizeUsd} copies`, `${usdSigned(p.copy.netUsd)} net`, signClass(p.copy.netUsd), 'wallets.follower')),
+    p.copy.trusted === false
+      ? h('p', { class: 'rec-sub' }, label('SIMULATED'), ' It trades faster than the 30-second price data can follow, so the replay of your copies says nothing about copying it.')
+      : h('p', { class: 'rec-sub' }, label('SIMULATED'), ` Last ${p.copy.trades} trades, ${p.copy.wins ?? 0} won and ${p.copy.losses ?? 0} lost, after fees and copy delay.`),
     h('p', { class: 'why' }, h('b', {}, 'Why I picked this trader: '), p.why),
     p.exits?.trades ? h('p', { class: 'rec-sub' }, h('b', {}, 'Exits: '), p.exits.text) : null,
     isNum(targetUsd) && p.days?.activeDays ? h('p', { class: 'rec-sub' }, `Would have reached your ${usdWhole(targetUsd)} target on ${p.days.hitDays} of ${p.days.activeDays} active days (a typical day ${usdSigned(p.days.medianDayUsd)}).`) : null,
@@ -122,5 +126,5 @@ export function skippedList(skipped, hooks) {
     h('h4', {}, 'High earners I did not recommend'),
     h('ul', {}, notable.map((s) => h('li', {},
       h('button', { class: 'wl', type: 'button', onclick: () => hooks.openWallet(s.wallet) }, s.name || short(s.wallet)),
-      ` (${usdSigned(s.copy.netUsd)} copy result): `, s.reasons[0]))));
+      s.copy.trusted === false ? ' (copy replay not trustworthy): ' : ` (${usdSigned(s.copy.netUsd)} copy result): `, s.reasons[0]))));
 }

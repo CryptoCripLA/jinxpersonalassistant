@@ -101,21 +101,34 @@ export function explosiveProfile(outcomes, { sizeUsd = 25 } = {}) {
   };
 }
 
+// A replay where copiers beat a wallet that flips within 10 minutes is a candle-resolution
+// artifact (the follower is filled at a 30-second candle's price, not the wallet's real fill),
+// so its dollars say nothing about copying it. Slow holders can legitimately be beaten.
+export const UNTRUSTED_HOLD_SEC = 600;
+export function replayTrusted(r) {
+  const edge = r.explosive?.edgeKeptPct;
+  return !(isNum(edge) && edge > 100 && isNum(r.medianHoldSec) && r.medianHoldSec < UNTRUSTED_HOLD_SEC);
+}
+
 // Ranks by what a follower could realistically have banked per active day: the average
 // copied-trade result times the coins a day you would actually take (your 1-3, not the
-// wallet's 30). Wallets that never handed a follower a 3x are listed after every one that did.
+// wallet's 30). Wallets that never handed a follower a 3x are listed after every one that did,
+// and replays that cannot be trusted come last.
 export function rankExplosive(rows, { maxCoinsPerDay = 3 } = {}) {
   return rows
     .map((r) => {
       const ex = r.explosive ?? {};
       const perDay = Math.min(r.coinsPerActiveDay ?? 1, maxCoinsPerDay);
+      const trusted = replayTrusted(r);
       return {
         ...r,
-        isExplosive: (ex.followerCaptured?.[3] ?? 0) > 0,
+        replayTrusted: trusted,
+        isExplosive: trusted && (ex.followerCaptured?.[3] ?? 0) > 0,
         perActiveDayUsd: isNum(ex.avgFollowerNetUsd) ? ex.avgFollowerNetUsd * perDay : null,
       };
     })
-    .sort((a, b) => Number(b.isExplosive) - Number(a.isExplosive)
+    .sort((a, b) => Number(b.replayTrusted) - Number(a.replayTrusted)
+      || Number(b.isExplosive) - Number(a.isExplosive)
       || (b.perActiveDayUsd ?? -Infinity) - (a.perActiveDayUsd ?? -Infinity)
       || (b.explosive?.followerCaptured?.[5] ?? 0) - (a.explosive?.followerCaptured?.[5] ?? 0));
 }

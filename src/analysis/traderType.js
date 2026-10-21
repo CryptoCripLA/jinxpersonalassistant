@@ -4,6 +4,7 @@
 // copiers beating a 1-minute flipper) so the owner never has to spot them in a table.
 import { usd, usdShort, pct } from '../money/usd.js';
 import { duration, roundNice } from '../text/plain.js';
+import { replayTrusted } from './explosive.js';
 
 const isNum = (x) => typeof x === 'number' && Number.isFinite(x);
 const oneDec = (x) => Math.round(x * 10) / 10;
@@ -86,9 +87,11 @@ export function styleFit(row, p, prefs) {
       reasons.push(`Usually holds ${duration(hold)}, longer than your ${duration(maxHoldSec)}.`);
     } else good.push(`Usually sells within ${duration(hold)}.`);
   }
-  if (isNum(ex.edgeKeptPct) && ex.edgeKeptPct > 100 && isNum(hold) && hold < 600) {
+  const untrusted = !replayTrusted({ explosive: ex, medianHoldSec: hold });
+  if (untrusted) {
     worse('no');
-    reasons.push(`Its copy result cannot be trusted: it flips in about ${duration(hold)}, and the replay on 30-second prices shows copiers beating the wallet itself (${Math.round(ex.edgeKeptPct)}% of its edge), which does not happen in real trading.`);
+    // first: it decides how every other number about this wallet should be read
+    reasons.unshift(`Its copy result cannot be trusted: it flips in about ${duration(hold)}, and the replay on 30-second prices shows copiers beating the wallet itself (${Math.round(ex.edgeKeptPct)}% of its edge), which does not happen in real trading.`);
   }
   for (const f of row.flags ?? []) {
     if (f === 'DISTRIBUTOR') { worse('no'); reasons.push('Sells far more often than it buys: it looks like it is unloading coins it got elsewhere.'); }
@@ -104,10 +107,10 @@ export function styleFit(row, p, prefs) {
     if (ex.followerNetUsd <= 0) {
       worse('no');
       reasons.push(`Copying it would have lost ${usd(-ex.followerNetUsd)} over its last ${copied} trades, after fees and delay.`);
-    } else good.push(`Your copies of its last ${copied} trades would have made ${usd(ex.followerNetUsd)} after fees and a few seconds of delay.`);
+    } else if (!untrusted) good.push(`Your copies of its last ${copied} trades would have made ${usd(ex.followerNetUsd)} after fees and a few seconds of delay.`);
   }
   if (isNum(ex.edgeKeptPct) && ex.edgeKeptPct > 0 && ex.edgeKeptPct <= 100) good.push(`A follower kept about ${Math.round(ex.edgeKeptPct)}% of its edge after the copy delay.`);
-  return { level, reasons, good };
+  return { level, reasons, good, untrusted };
 }
 
 export function describeBehavior(p, { nowSec = Math.floor(Date.now() / 1000) } = {}) {

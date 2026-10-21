@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { peakAfter, tradeOutcome, explosiveProfile, rankExplosive, walletFlags, MULTIPLE_STEPS } from '../src/analysis/explosive.js';
+import { peakAfter, tradeOutcome, explosiveProfile, rankExplosive, replayTrusted, walletFlags, MULTIPLE_STEPS } from '../src/analysis/explosive.js';
 
 const c = (t, high, close = high) => ({ t, open: close, close, high, low: close });
 
@@ -86,6 +86,22 @@ test('rankExplosive orders by realizable follower dollars per active day, capped
   assert.equal(r[1].perActiveDayUsd, 12, 'a busy wallet only counts the 3 coins a day you would take');
   assert.equal(r[2].isExplosive, false, 'never handed you a 3x: not an explosive wallet');
   assert.equal(r[0].isExplosive, true);
+});
+
+test('a replay where copiers beat a fast flipper is not trusted, and never ranks as an explosive wallet', () => {
+  // live 2026-10-21: the top 4 of the board flipped in 1-3 minutes and their replayed copies
+  // "kept" 256-2,028% of the wallet's own edge, a 30-second-candle artifact
+  const fake = row({ wallet: 'fake', coinsPerActiveDay: 17, medianHoldSec: 142, explosive: { avgFollowerNetUsd: 144, followerNetUsd: 5467, edgeKeptPct: 2028, followerCaptured: { 3: 5, 5: 2, 7: 2, 10: 2, 19: 1 } } });
+  const sharp = row({ wallet: 'sharp', coinsPerActiveDay: 2, medianHoldSec: 3000, explosive: { avgFollowerNetUsd: 30, followerNetUsd: 600, edgeKeptPct: 70, followerCaptured: { 3: 4, 5: 3, 7: 2, 10: 1, 19: 0 } } });
+  const slow = row({ wallet: 'slow', coinsPerActiveDay: 2, medianHoldSec: 5400, explosive: { avgFollowerNetUsd: 20, followerNetUsd: 400, edgeKeptPct: 140, followerCaptured: { 3: 2, 5: 1, 7: 0, 10: 0, 19: 0 } } });
+  assert.equal(replayTrusted(fake), false);
+  assert.equal(replayTrusted(sharp), true);
+  assert.equal(replayTrusted(slow), true, 'a slow holder can beat its own exits: copiers sell on its signal, not its fill');
+  const r = rankExplosive([fake, sharp, slow], { maxCoinsPerDay: 3 });
+  assert.deepEqual(r.map((x) => x.wallet), ['sharp', 'slow', 'fake']);
+  const f = r.find((x) => x.wallet === 'fake');
+  assert.equal(f.isExplosive, false);
+  assert.equal(f.replayTrusted, false);
 });
 
 test('walletFlags ports the bot and distributor checks (Kelows/million, MIT)', () => {

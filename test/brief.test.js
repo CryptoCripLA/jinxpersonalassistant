@@ -24,6 +24,15 @@ test('Today briefing leads with what to do: best trader, best opportunity, and t
   assert.ok(b.actions.some((a) => a.kind === 'coin' && a.address === MINT));
 });
 
+test('the Today briefing never quotes a copy replay it cannot trust as a result', async () => {
+  const fake = { wallet: 'FAKE', copy: { netUsd: 5467.43, trusted: false }, reasons: ['Its copy result cannot be trusted: it flips in about 142 seconds.', 'Buys about 17.1 coins a day; you want 1 to 3.'] };
+  const b = await brief({ view: 'today' }, { ...svc, today: async () => ({ ...(await svc.today()), traders: { picks: [pick], skipped: [fake] } }) });
+  const line = b.evidence.find((e) => /skipped/i.test(e));
+  assert.ok(line, 'still says which headline wallet it rejected');
+  assert.doesNotMatch(line, /5,467/);
+  assert.match(line, /cannot be trusted/);
+});
+
 test('a coin briefing gives a verdict, the evidence, and realistic versus theoretical dollars', async () => {
   const b = await brief({ view: 'coin', coin: { address: MINT } }, svc);
   assert.match(b.text, /^ZAP: worth a small try/i);

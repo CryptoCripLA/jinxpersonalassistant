@@ -99,7 +99,9 @@ export function age(sec) {
   if (sec < 60) return `${Math.max(0, Math.round(sec))}s`;
   if (sec < 3600) return `${Math.round(sec / 60)}m`;
   if (sec < 86400) return `${Math.round(sec / 360) / 10}h`;
-  return `${Math.round(sec / 8640) / 10}d`;
+  if (sec < 10 * 86400) return `${Math.round(sec / 8640) / 10}d`;
+  if (sec < 365 * 86400) return `${Math.round(sec / 86400)}d`;
+  return `${Math.round(sec / (365 * 8640)) / 10}y`;
 }
 export function duration(sec) {
   if (!isNum(sec)) return 'unknown';

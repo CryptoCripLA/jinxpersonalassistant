@@ -38,18 +38,22 @@ export function recommendTraders(board, profiles, prefs, { nowSec = Math.floor(D
       lastActiveSec: isNum(row.lastTs) ? nowSec - row.lastTs : null,
       perActiveDayUsd: row.perActiveDayUsd ?? null,
       explosive: ex,
-      copy: { netUsd: ex.followerNetUsd ?? null, trades: n, wins: ex.followerWins ?? null, losses: ex.followerLosses ?? null, sizeUsd: size, periodDays: row.periodDays ?? 14, delaySec: row.delaySec ?? null },
-      why: `${type.plain} Your ${usdWhole(size)} copies of its last ${n} trades would have made ${usd(ex.followerNetUsd)} after fees and a few seconds of delay.`,
+      copy: { netUsd: ex.followerNetUsd ?? null, trusted: !fit.untrusted, trades: n, wins: ex.followerWins ?? null, losses: ex.followerLosses ?? null, sizeUsd: size, periodDays: row.periodDays ?? 14, delaySec: row.delaySec ?? null },
+      why: fit.untrusted
+        ? `${type.plain} The replay of your ${usdWhole(size)} copies of its last ${n} trades cannot be trusted: it trades too fast for the price data.`
+        : `${type.plain} Your ${usdWhole(size)} copies of its last ${n} trades would have made ${usd(ex.followerNetUsd)} after fees and a few seconds of delay.`,
       reasons: fit.reasons,
     };
   });
+  // trusted winners first, then results the replay cannot vouch for, then losers
+  const group = (r) => (r.copy.trusted ? ((r.copy.netUsd ?? 0) > 0 ? 0 : 2) : 1);
   const picks = all
     .filter((r) => r.fit.level !== 'no')
     .sort((a, b) => RANK[a.fit.level] - RANK[b.fit.level] || (b.days.hitDays ?? 0) - (a.days.hitDays ?? 0) || (b.perActiveDayUsd ?? -Infinity) - (a.perActiveDayUsd ?? -Infinity))
     .slice(0, max);
   const skipped = all
     .filter((r) => r.fit.level === 'no')
-    .sort((a, b) => (b.copy.netUsd ?? -Infinity) - (a.copy.netUsd ?? -Infinity));
+    .sort((a, b) => group(a) - group(b) || (b.copy.netUsd ?? -Infinity) - (a.copy.netUsd ?? -Infinity));
   return { picks, skipped, measured: all.length, fitting: all.filter((r) => r.fit.level !== 'no').length };
 }
 

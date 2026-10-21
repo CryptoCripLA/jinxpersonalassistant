@@ -38,6 +38,25 @@ test('high earners that do not fit are named with the reason, not silently dropp
   assert.equal(r.skipped[0].wallet, 'BUSY', 'biggest headline numbers explained first');
 });
 
+test('a copy replay that cannot be trusted is never quoted as a result or ranked as a high earner', () => {
+  // live 2026-10-21: a 142-second flipper whose replayed copies "kept" 2,028% of its edge showed
+  // as "+$5,467.43 copy result" at the top of the skipped list and in the analyst's brief
+  const many = { wallet: 'MANY', name: null, coinsPerActiveDay: 9, medianHoldSec: 3000, flags: [], isExplosive: true, perActiveDayUsd: 30, explosive: ex({ followerNetUsd: 300, edgeKeptPct: 70 }), outcomes: outs([50, 50, 50, 50]), lastTs: NOW - 900 };
+  const fake = { wallet: 'FAKE', name: null, coinsPerActiveDay: 17.1, medianHoldSec: 142, flags: ['SNIPER_SPEED'], isExplosive: true, perActiveDayUsd: 300, explosive: ex({ followerNetUsd: 5467.43, edgeKeptPct: 2027.6, trades: 38, copiedTrades: 38 }), outcomes: outs([200, 150]), lastTs: NOW - 300 };
+  const b = [...board, many, fake];
+  const prof = new Map([...profiles, ...[many, fake].map((r) => [r.wallet, { ...profiles.get('GOOD'), wallet: r.wallet, coinsPerActiveDay: r.coinsPerActiveDay, medianHoldSec: r.medianHoldSec }])]);
+  const r = recommendTraders(b, prof, prefs, { nowSec: NOW });
+  assert.deepEqual(r.skipped.slice(0, 1).map((s) => s.wallet), ['MANY'], 'trusted results rank first');
+  const f = r.skipped.find((s) => s.wallet === 'FAKE');
+  assert.equal(f.copy.trusted, false);
+  assert.equal(r.skipped.find((s) => s.wallet === 'MANY').copy.trusted, true);
+  assert.match(f.reasons[0], /cannot be trusted/, 'the reason that matters most comes first');
+  assert.doesNotMatch(f.why, /would have made/);
+  assert.match(f.why, /cannot be trusted/);
+  assert.ok(!f.fit.good.some((g) => /would have made/.test(g)));
+  assert.ok(r.skipped.indexOf(f) > r.skipped.findIndex((s) => s.wallet === 'MANY'));
+});
+
 test('opportunities separate the coin\'s theoretical multiple from what a follower realistically captured', () => {
   const rate = { usdPerSol: 100, source: 't', at: 0 };
   const fees = feeModel({ rate, networkSolPerTx: 0.002 });

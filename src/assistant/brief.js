@@ -38,7 +38,9 @@ export async function brief(ctx, svc) {
           top ? `${nameOf(top)}: ${top.why}` : null,
           opp?.realistic?.text,
           opp?.targetText,
-          skip ? `I skipped ${nameOf(skip)} despite its ${usdSigned(skip.copy.netUsd)} copy result: ${skip.reasons[0]}` : null,
+          skip ? (skip.copy.trusted === false
+            ? `I skipped ${nameOf(skip)}: ${skip.reasons[0]}`
+            : `I skipped ${nameOf(skip)} despite its ${usdSigned(skip.copy.netUsd)} copy result: ${skip.reasons[0]}`) : null,
         ],
         [
           top ? { kind: 'copy', wallet: top.wallet, label: `Copy ${nameOf(top)}` } : null,

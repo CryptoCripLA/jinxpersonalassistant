@@ -60,8 +60,10 @@ export async function openWallets(root, hooks) {
       const e = r.explosive;
       return h('tr', { class: 'click', onclick: () => hooks.openWallet(r.wallet) },
         h('td', {}, h('button', { class: 'wl', type: 'button' }, r.name || short(r.wallet)), r.isExplosive ? h('span', { class: 'chip exp', style: { marginLeft: '6px' } }, icon('bolt')) : null),
-        h('td', { class: `n ${signClass(r.perActiveDayUsd)}` }, usdSigned(r.perActiveDayUsd)),
-        h('td', { class: `n ${signClass(e.followerNetUsd)}` }, `${usdSigned(e.followerNetUsd)} `, h('span', { class: 'faint' }, `(${e.followerWins}W ${e.followerLosses}L)`)),
+        r.replayTrusted === false
+          ? h('td', { class: 'n faint', colspan: 2 }, 'replay not trustworthy (too fast)')
+          : [h('td', { class: `n ${signClass(r.perActiveDayUsd)}` }, usdSigned(r.perActiveDayUsd)),
+            h('td', { class: `n ${signClass(e.followerNetUsd)}` }, `${usdSigned(e.followerNetUsd)} `, h('span', { class: 'faint' }, `(${e.followerWins}W ${e.followerLosses}L)`))],
         h('td', {}, mults(e.found, 'wallets.found')),
         h('td', {}, mults(e.captured, 'wallets.captured')),
         h('td', {}, mults(e.followerCaptured, 'wallets.follower')),
@@ -139,7 +141,9 @@ export async function openWallet(root, wallet, hooks) {
     const e = x.explosive;
     add(page, 
       h('div', { class: 'stats' },
-        stat(usdSigned(e.followerNetUsd), `your $${x.sizeUsd} copies over ${x.periodDays} days`, 'wallets.follower', signClass(e.followerNetUsd)),
+        d.card?.copy.trusted === false
+          ? stat('not trustworthy', `your $${x.sizeUsd} copies over ${x.periodDays} days (too fast for the price data)`, 'wallets.follower')
+          : stat(usdSigned(e.followerNetUsd), `your $${x.sizeUsd} copies over ${x.periodDays} days`, 'wallets.follower', signClass(e.followerNetUsd)),
         stat(`${e.followerCaptured[3]} / ${e.followerCaptured[5]} / ${e.followerCaptured[10]}`, 'copies that caught 3x / 5x / 10x', 'wallets.follower'),
         stat(`${e.found[7]} / ${e.found[10]} / ${e.found[19]}`, 'buys that ran 7x / 10x / 19x', 'wallets.found'),
         stat(isNum(e.edgeKeptPct) ? `${Math.round(e.edgeKeptPct)}%` : 'n/a', 'edge kept after copy delay', 'wallets.edge'),
