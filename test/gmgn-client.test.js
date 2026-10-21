@@ -95,3 +95,16 @@ test('trending reads the rank list whether GMGN wraps it in data or not', async 
   assert.deepEqual((await g.trending('1m')).rank, [{ address: 'A' }]);
   assert.deepEqual((await g.trending('1h')).rank, [{ address: 'B' }]);
 });
+
+test('two lanes on one key: a GMGN pause hit by the background lane also pauses the interactive lane', async () => {
+  const rate = Object.assign(new Error('limit'), { name: 'OpenApiError', status: 429, apiError: 'RATE_LIMIT_BANNED', resetAtUnix: 2_000 });
+  const { api } = fakeApi({ getTokenInfo: async () => { throw rate; }, getGasPrice: async () => ({ native_token_usd_price: '100' }) });
+  const db = openDb(':memory:');
+  const slept = [];
+  const live = new Gmgn({ api, db, plan: 'plus', headroom: 0.35, sleep: async (ms) => slept.push(ms), now: () => 1_000_000 });
+  const job = new Gmgn({ api, db, plan: 'plus', headroom: 0.45, sleep: async () => {}, now: () => 1_000_000, peers: [live] });
+  await assert.rejects(() => job.tokenInfo('MINT'), /rate limit/);
+  await live.solUsd();
+  assert.ok(slept[0] >= 1_000_000, 'the interactive lane waited out the pause instead of re-tripping it');
+  assert.equal(live.bucket.plan.rate, 7, '35% of the Plus bucket');
+});

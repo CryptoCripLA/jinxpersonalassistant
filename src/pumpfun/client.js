@@ -31,7 +31,7 @@ export function normalizeTrade(r) {
 }
 
 export class PumpFun {
-  constructor({ fetch = globalThis.fetch, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), now = Date.now, minGapMs = 400, log = () => {} } = {}) {
+  constructor({ fetch = globalThis.fetch, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), now = Date.now, minGapMs = 250, log = () => {} } = {}) {
     Object.assign(this, { fetchFn: fetch, sleep, now, minGapMs, log });
     this.lastAt = -Infinity;
     this.pausedUntil = 0;

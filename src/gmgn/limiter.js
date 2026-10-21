@@ -1,6 +1,9 @@
 // GMGN uses a plan-based leaky bucket (rate tokens/s drained, capacity units max).
-// A request of weight w may go when level + w <= capacity. Requests during a
-// server-side ban extend the ban, so a ban pauses every call until it lifts.
+// A request of weight w may go when level + w <= capacity.
+// A server-side ban pauses every call until it lifts. When it lifts, the bucket restarts FULL,
+// so the callers that queued during the ban leave one at a time at the plan rate. (Releasing
+// them all at the reset instant re-tripped GMGN's limiter and extended the ban, seen live
+// 2026-10-20.)
 
 export const PLANS = {
   free: { rate: 5, capacity: 5 },
@@ -19,6 +22,7 @@ export class LeakyBucket {
 
   drain() {
     const t = this.now();
+    if (t <= this.last) return; // never drain ahead of a ban's end
     const elapsed = (t - this.last) / 1000;
     this.level = Math.max(0, this.level - elapsed * this.plan.rate);
     this.last = t;
@@ -28,9 +32,9 @@ export class LeakyBucket {
     if (weight > this.plan.capacity) return { impossible: true, ms: Infinity };
     this.drain();
     const t = this.now();
-    if (this.bannedUntil > t) return { impossible: false, ms: this.bannedUntil - t };
+    const banned = Math.max(0, this.bannedUntil - t);
     const excess = this.level + weight - this.plan.capacity;
-    return { impossible: false, ms: excess > 0 ? Math.ceil((excess / this.plan.rate) * 1000) : 0 };
+    return { impossible: false, ms: banned + (excess > 0 ? Math.ceil((excess / this.plan.rate) * 1000) : 0) };
   }
 
   // Reserve capacity now; returns how long the caller must wait before sending.
@@ -42,6 +46,9 @@ export class LeakyBucket {
   }
 
   banUntil(ms) {
-    this.bannedUntil = Math.max(this.bannedUntil, ms);
+    if (ms <= this.bannedUntil) return;
+    this.bannedUntil = ms;
+    this.level = Math.max(this.level, this.plan.capacity);
+    this.last = Math.max(this.last, ms);
   }
 }

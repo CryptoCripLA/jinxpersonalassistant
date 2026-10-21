@@ -216,3 +216,27 @@ test('two approvals racing for the same trade send only one order', async () => 
   await Promise.all([h.desk.approve(id), h.desk.approve(id), h.desk.execute(id)]);
   assert.equal(h.sent.length, 1);
 });
+
+test('a wallet on "watch first" is only observed, even when the desk is Automatic', async () => {
+  const h = harness({ env: { GMGN_ALLOW_AUTOMATED_TRADES: '1' } });
+  h.desk.setConfig({ mode: 'auto' });
+  h.desk.watch('W', { ...watch, watchOnly: true });
+  await h.desk.tick();
+  h.feed.rows = [buyRow('b1', h.nowS())];
+  await h.desk.tick();
+  const [i] = h.desk.intents();
+  assert.equal(i.state, 'observed');
+  assert.match(i.detail.reason, /watching this trader first/i);
+  assert.equal(h.sent.length, 0);
+});
+
+test('copied buys carry your hard stop as a GMGN condition order and still follow the trader\'s sells', async () => {
+  const h = harness({ env: { GMGN_ALLOW_AUTOMATED_TRADES: '1' } });
+  h.desk.setConfig({ mode: 'auto' });
+  h.desk.watch('W', { ...watch, hardStopPct: 40 });
+  await h.desk.tick();
+  h.feed.rows = [buyRow('b1', h.nowS())];
+  await h.desk.tick();
+  assert.equal(h.sent.length, 1);
+  assert.deepEqual(h.sent[0].condition_orders, [{ order_type: 'loss_stop', side: 'sell', price_scale: '40', sell_ratio: '100' }]);
+});

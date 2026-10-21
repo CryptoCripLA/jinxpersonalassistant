@@ -3,12 +3,21 @@ import { classifyEntry } from './trades.js';
 import { duration, plural, roundNice } from '../text/plain.js';
 import { usd, pct } from '../money/usd.js';
 
+// The owner's stated style (2026-10-20/21): selective, 1-3 coins a day, quick holds, chasing
+// 7x-19x+ moves. Editable in the app; never hard limits. dailyTargetUsd is unset until he sets it.
 export const DEFAULT_PREFS = {
   minCoinsPerDay: 1,
   maxCoinsPerDay: 3,
   maxHoldSec: 2 * 3600,
   minShareUnderMaxHold: 0.6,
   minClosed: 5,
+  dailyTargetUsd: null,
+  targetMultipleLow: 7,
+  targetMultipleHigh: 19,
+  // Mechanical exits (owner guidance 2026-10-21): partial take-profits, a trailing stop once it
+  // moves, a hard stop if it fails. Rides on every buy as GMGN condition orders; editable.
+  useExitPlan: true,
+  exitPlan: { takeProfits: [{ multiple: 2, sellPct: 30 }, { multiple: 3, sellPct: 30 }, { multiple: 5, sellPct: 20 }], trailFromMultiple: 2, trailDrawdownPct: 30, hardStopPct: 40 },
 };
 
 const median = (xs) => {

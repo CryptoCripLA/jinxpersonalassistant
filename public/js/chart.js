@@ -2,7 +2,20 @@
 // fomo-terminal and solbeam use. Price or market-cap mode; gold markers for buys by wallets on
 // your explosive list.
 const LWC = window.LightweightCharts;
-const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+// lightweight-charts cannot parse oklch(), which the theme uses: paint one pixel with the
+// theme colour and read it back as rgba.
+const probe = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+function rgba(color, fallback) {
+  if (!color) return fallback;
+  probe.clearRect(0, 0, 1, 1);
+  probe.fillStyle = '#000';
+  probe.fillStyle = color;
+  probe.fillRect(0, 0, 1, 1);
+  const [r, g, b, a] = probe.getImageData(0, 0, 1, 1).data;
+  return `rgba(${r}, ${g}, ${b}, ${Math.round((a / 255) * 100) / 100})`;
+}
+const css = (v, fallback = '#888') => rgba(getComputedStyle(document.documentElement).getPropertyValue(v).trim(), fallback);
 
 function fmtUsd(v) {
   const a = Math.abs(v);
@@ -29,7 +42,7 @@ export class CoinChart {
       autoSize: true,
       layout: { background: { type: 'solid', color: css('--bg') || '#101318' }, textColor: css('--ink-3') || '#999', fontFamily: 'Hanken Grotesk, system-ui, sans-serif', attributionLogo: false },
       grid: { vertLines: { color: css('--line-soft') || '#222' }, horzLines: { color: css('--line-soft') || '#222' } },
-      rightPriceScale: { borderColor: css('--line') || '#333', scaleMargins: { top: 0.08, bottom: 0.26 } },
+      rightPriceScale: { borderColor: css('--line') || '#333', scaleMargins: { top: 0.08, bottom: 0.06 } },
       timeScale: { borderColor: css('--line') || '#333', timeVisible: true, secondsVisible: false, rightOffset: 4 },
       crosshair: { mode: 0 },
       localization: { priceFormatter: fmtUsd },
@@ -37,11 +50,12 @@ export class CoinChart {
     const up = css('--up') || '#3c9';
     const down = css('--down') || '#e66';
     this.candles = this.chart.addSeries(LWC.CandlestickSeries, { upColor: up, downColor: down, borderUpColor: up, borderDownColor: down, wickUpColor: up, wickDownColor: down, priceLineColor: css('--gold') || '#cb4', priceFormat: { type: 'custom', formatter: fmtUsd, minMove: 1e-12 } });
-    this.volume = this.chart.addSeries(LWC.HistogramSeries, { priceScaleId: '', priceFormat: { type: 'volume' }, lastValueVisible: false, priceLineVisible: false });
-    this.volume.priceScale().applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+    // volume in its own pane under the candles, so the price axis never runs below $0
+    this.volume = this.chart.addSeries(LWC.HistogramSeries, { priceFormat: { type: 'custom', formatter: fmtUsd }, lastValueVisible: false, priceLineVisible: false }, 1);
+    this.chart.panes()[1]?.setHeight(64);
     this.markerApi = LWC.createSeriesMarkers ? LWC.createSeriesMarkers(this.candles, []) : null;
-    this.upWash = 'rgba(80, 200, 140, 0.35)';
-    this.downWash = 'rgba(235, 110, 95, 0.35)';
+    this.upWash = up.replace(/[\d.]+\)$/, '0.35)');
+    this.downWash = down.replace(/[\d.]+\)$/, '0.35)');
   }
 
   set({ candles, supply, markers = [] }) {
@@ -70,7 +84,7 @@ export class CoinChart {
       const snap = (t) => this.data.reduce((best, c) => (c.t <= t ? c.t : best), first);
       this.markerApi.setMarkers(this.markers
         .filter((m) => m.t >= first - res && m.t <= last + res)
-        .map((m) => ({ time: snap(m.t), position: 'belowBar', color: css('--gold') || '#cb4', shape: 'arrowUp', text: m.text }))
+        .map((m) => ({ time: snap(m.t), position: 'belowBar', color: css('--gold', '#cb4'), shape: 'arrowUp', text: m.text }))
         .sort((a, b) => a.time - b.time));
     }
   }

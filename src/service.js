@@ -11,7 +11,10 @@ import { coinDetail } from './intel/coin.js';
 import { Pulse } from './intel/pulse.js';
 import { PumpFun } from './pumpfun/client.js';
 import { PumpPortalStream } from './pumpfun/stream.js';
-import { Trader } from './trade/manual.js';
+import { Trader, describeExitPlan } from './trade/manual.js';
+import { recommendTraders, opportunitiesForYou } from './intel/advisor.js';
+import { dailyPlan } from './analysis/mission.js';
+import { brief } from './assistant/brief.js';
 import { preferenceFit, DEFAULT_PREFS } from './analysis/profile.js';
 import { rankWallets } from './analysis/rank.js';
 import { suggestWallets } from './analysis/suggest.js';
@@ -69,20 +72,92 @@ export class Service {
     return this.g.solUsd();
   }
 
+  // Your GMGN wallet. When GMGN is pausing requests the last known balance is returned,
+  // marked stale with the reason and its time, instead of "unavailable".
   async account() {
-    const [info, rate] = await Promise.all([this.g.userInfo(), this.rate()]);
-    const sol = (info?.wallets ?? []).find((w) => w.chain === 'sol');
-    const bal = (sym) => Number(sol?.balances?.find((b) => b.symbol === sym)?.balance ?? 0);
-    const solAmt = bal('SOL');
-    const usdc = bal('USDC');
+    try {
+      const [info, rate] = await Promise.all([this.g.userInfo(), this.rate()]);
+      const sol = (info?.wallets ?? []).find((w) => w.chain === 'sol');
+      const bal = (sym) => Number(sol?.balances?.find((b) => b.symbol === sym)?.balance ?? 0);
+      const solAmt = bal('SOL');
+      const usdc = bal('USDC');
+      const a = {
+        address: sol?.address ?? null,
+        solUsd: rate ? solAmt * rate.usdPerSol : null,
+        usdcUsd: usdc,
+        totalUsd: rate ? solAmt * rate.usdPerSol + usdc : null,
+        rate,
+        rateLine: rateLine(rate),
+        asOf: Date.now(),
+        stale: false,
+      };
+      if (a.totalUsd != null) kvSet(this.db, 'account.last', a);
+      return a;
+    } catch (e) {
+      const last = kvGet(this.db, 'account.last', null);
+      if (!last) throw e;
+      return { ...last, stale: true, staleReason: e.message };
+    }
+  }
+
+  // ---- owner preferences (editable, never hard limits)
+  prefsView() {
+    const u = this.user();
     return {
-      address: sol?.address ?? null,
-      solUsd: rate ? solAmt * rate.usdPerSol : null,
-      usdcUsd: usdc,
-      totalUsd: rate ? solAmt * rate.usdPerSol + usdc : null,
-      rate,
-      rateLine: rateLine(rate),
+      sizeUsd: u.sizeUsd, delaySec: u.delaySec, dailyTargetUsd: u.prefs.dailyTargetUsd ?? null,
+      minCoinsPerDay: u.prefs.minCoinsPerDay, maxCoinsPerDay: u.prefs.maxCoinsPerDay, maxHoldMin: Math.round(u.prefs.maxHoldSec / 60),
+      targetMultipleLow: u.prefs.targetMultipleLow ?? 7, targetMultipleHigh: u.prefs.targetMultipleHigh ?? 19, tzOffsetMin: u.prefs.tzOffsetMin ?? 0,
+      useExitPlan: u.prefs.useExitPlan !== false,
+      exitPlan: u.prefs.exitPlan,
+      exitTps: (u.prefs.exitPlan?.takeProfits ?? []).map((t) => `${t.multiple}:${t.sellPct}`).join(','),
+      trailDrawdownPct: u.prefs.exitPlan?.trailDrawdownPct ?? null,
+      hardStopPct: u.prefs.exitPlan?.hardStopPct ?? null,
+      exitText: describeExitPlan(u.prefs.useExitPlan !== false ? u.prefs.exitPlan : null),
     };
+  }
+
+  setPrefs(patch) {
+    const u = this.user();
+    const n = (k, lo, hi) => {
+      if (patch[k] === undefined || patch[k] === null || patch[k] === '') return undefined;
+      const v = Number(patch[k]);
+      if (!Number.isFinite(v) || v < lo || v > hi) throw Object.assign(new Error(`${k} must be between ${lo} and ${hi}`), { status: 400 });
+      return v;
+    };
+    const prefs = { ...u.prefs };
+    const set = (k, v) => v !== undefined && (prefs[k] = v);
+    set('dailyTargetUsd', n('dailyTargetUsd', 1, 100_000));
+    set('minCoinsPerDay', n('minCoinsPerDay', 0.5, 100));
+    set('maxCoinsPerDay', n('maxCoinsPerDay', 0.5, 100));
+    const hold = n('maxHoldMin', 1, 7 * 24 * 60);
+    if (hold !== undefined) prefs.maxHoldSec = hold * 60;
+    set('targetMultipleLow', n('targetMultipleLow', 1.5, 1000));
+    set('targetMultipleHigh', n('targetMultipleHigh', 1.5, 1000));
+    set('tzOffsetMin', n('tzOffsetMin', -14 * 60, 14 * 60));
+    if (patch.useExitPlan !== undefined) prefs.useExitPlan = Boolean(Number(patch.useExitPlan));
+    const plan = { ...(prefs.exitPlan ?? {}) };
+    const trail = n('trailDrawdownPct', 5, 90);
+    if (trail !== undefined) plan.trailDrawdownPct = trail;
+    const stop = n('hardStopPct', 5, 95);
+    if (stop !== undefined) plan.hardStopPct = stop;
+    if (typeof patch.exitTps === 'string' && patch.exitTps.trim()) {
+      const tps = patch.exitTps.split(',').map((x) => x.trim().split(':').map(Number));
+      if (!tps.every(([m, p]) => m > 1 && m <= 1000 && p > 0 && p <= 100) || tps.reduce((a, [, p]) => a + p, 0) > 100) {
+        throw Object.assign(new Error('Take-profits look like 2:30,3:30,5:20 (multiple:percent), adding up to at most 100%.'), { status: 400 });
+      }
+      plan.takeProfits = tps.slice(0, 6).map(([multiple, sellPct]) => ({ multiple, sellPct }));
+    }
+    prefs.exitPlan = plan;
+    if (prefs.minCoinsPerDay > prefs.maxCoinsPerDay) throw Object.assign(new Error('Fewest coins a day must be at most the most coins a day.'), { status: 400 });
+    const next = { ...u, prefs };
+    const size = n('sizeUsd', 1, 100_000);
+    if (size !== undefined) next.sizeUsd = size;
+    const delay = n('delaySec', 0, 600);
+    if (delay !== undefined) next.delaySec = delay;
+    kvSet(this.db, 'user', next);
+    kvSet(this.db, 'suggestions', null);
+    this.todayCache = null;
+    return this.prefsView();
   }
 
   async capital() {
@@ -115,6 +190,7 @@ export class Service {
       user: this.user(),
       copy: this.desk.config(),
       gmgn: this.g.stats,
+      gmgnResearch: this.gJob?.stats ?? null,
     };
   }
 
@@ -252,10 +328,111 @@ export class Service {
     return { config: this.desk.config(), watches: this.desk.watches().map(({ seen_tx, ...w }) => w), intents: this.desk.intents(60), positions: this.desk.positions(), autoSwitch: this.env.GMGN_ALLOW_AUTOMATED_TRADES === '1' };
   }
 
-  async copyWallet(wallet) {
+  // watchOnly: "watch first" (records what it would copy, spends nothing). The owner's hard stop
+  // rides on every copied buy; the copy still follows the trader's sells.
+  async copyWallet(wallet, { watchOnly = false } = {}) {
     const d = await this.walletDetail(wallet);
-    this.desk.watch(wallet, d.settings.desk);
-    return { wallet, settings: d.settings.desk, items: d.settings.items };
+    const u = this.user();
+    const settings = { ...d.settings.desk, watchOnly, hardStopPct: u.prefs.useExitPlan !== false ? u.prefs.exitPlan?.hardStopPct ?? null : null };
+    this.desk.watch(wallet, settings);
+    return { wallet, settings, items: d.settings.items };
+  }
+
+  exitPlanFor(body = {}) {
+    const u = this.user();
+    if (body.exitPlan === false || u.prefs.useExitPlan === false) return null;
+    return u.prefs.exitPlan ?? null;
+  }
+
+  // ---- the advisor (Today screen, trader cards, proactive briefings)
+  profilesMap() {
+    if (!this.profCache || Date.now() - this.profCache.at > 60_000) this.profCache = { at: Date.now(), map: new Map(this.profiles().map((p) => [p.wallet, p])) };
+    return this.profCache.map;
+  }
+
+  advisorPrefs() {
+    const u = this.user();
+    return { ...u.prefs, sizeUsd: u.sizeUsd };
+  }
+
+  // What a follower actually got on past runners: entering 30 s after a signal that came in time
+  // (before or during the breakout) and selling after a 30% drop from the high. This is the
+  // executable number; the coin's own best run (followable) is the theoretical one.
+  studyForOpportunities() {
+    const ex = this.examples();
+    const entries = ex.flatMap((e) => (e.signals ?? []).filter((s) => s.timing !== 'too late' && Number.isFinite(s.follower?.multiple)).map((s) => s.follower.multiple)).sort((a, b) => a - b);
+    const best = ex.map((e) => e.followable?.multiple).filter((m) => Number.isFinite(m)).sort((a, b) => a - b);
+    const grad = studySummary(ex).find((s) => s.type === 'graduated');
+    const mid = (a) => (a.length ? a[Math.floor(a.length / 2)] : null);
+    return {
+      examples: entries.length,
+      runners: ex.length,
+      followableMedian: mid(entries),
+      tenXFollowable: entries.filter((m) => m >= 10).length,
+      bestRunMedian: mid(best),
+      migrationMedian: grad?.medianFollowerMultiple ?? null,
+      migrationSeen: grad?.seen ?? 0,
+    };
+  }
+
+  async accountView() {
+    const a = await this.account().catch((e) => ({ error: e.message }));
+    const cfg = this.desk.config();
+    const paused = Math.max(this.g.bucket?.bannedUntil ?? 0, this.gJob?.bucket?.bannedUntil ?? 0);
+    const feeFloat = 1;
+    return {
+      connected: !a.error,
+      via: 'Your GMGN API key on the server (set up with gmgn-cli; the private key never leaves the server)',
+      address: a.address ?? null,
+      cashUsd: a.totalUsd ?? null,
+      availableUsd: a.totalUsd != null ? Math.max(0, a.totalUsd - feeFloat) : null,
+      rateLine: a.rateLine ?? null,
+      asOf: a.asOf ?? null,
+      stale: Boolean(a.stale),
+      staleReason: a.staleReason ?? a.error ?? null,
+      gmgnPausedUntil: paused > Date.now() ? paused : null,
+      gmgnPlan: this.g.planName,
+      copy: { mode: cfg.mode, watching: this.desk.watches().length, automaticSwitch: this.env.GMGN_ALLOW_AUTOMATED_TRADES === '1', pausedReason: cfg.pausedReason },
+    };
+  }
+
+  async traderCard(wallet) {
+    const row = this.explosiveBoard().find((r) => r.wallet === wallet) ?? (() => {
+      const w = this.walletExplosive(wallet);
+      return w ? { ...w, perActiveDayUsd: null } : null;
+    })();
+    if (!row) return null;
+    const r = recommendTraders([row], this.profilesMap(), this.advisorPrefs(), { tzOffsetSec: (this.user().prefs.tzOffsetMin ?? 0) * 60 });
+    return r.picks[0] ?? r.skipped[0] ?? null;
+  }
+
+  async today({ fresh = false } = {}) {
+    if (!fresh && this.todayCache && Date.now() - this.todayCache.at < 20_000) return this.todayCache.value;
+    const prefs = this.advisorPrefs();
+    const fees = await this.fees();
+    const account = await this.accountView();
+    const traders = recommendTraders(this.explosiveBoard(), this.profilesMap(), prefs, { tzOffsetSec: (prefs.tzOffsetMin ?? 0) * 60 });
+    const study = this.studyForOpportunities();
+    const cols = this.pulseColumns();
+    const opportunities = opportunitiesForYou(cols.explosive ?? [], { study, fees, sizeUsd: prefs.sizeUsd, targetUsd: prefs.dailyTargetUsd, picks: traders.picks });
+    const nowS = Math.floor(Date.now() / 1000);
+    const freshGrads = (cols.graduated ?? []).filter((c) => c.completeTs && nowS - c.completeTs <= 1800 && c.rates).sort((a, b) => b.momentum.score - a.momentum.score);
+    const migrations = opportunitiesForYou(freshGrads, { study, fees, sizeUsd: prefs.sizeUsd, targetUsd: prefs.dailyTargetUsd, picks: traders.picks, kind: 'migration', max: 2, nowSec: nowS });
+    const plan = prefs.dailyTargetUsd
+      ? dailyPlan({ targetUsd: prefs.dailyTargetUsd, sizeUsd: prefs.sizeUsd, capitalUsd: account.availableUsd, tradesPerDay: prefs.maxCoinsPerDay, fees, venue: 'pool', poolFeePct: fees.fallbackPoolFeePct })
+      : null;
+    const value = {
+      prefs: this.prefsView(), account, plan, traders, opportunities, migrations, study,
+      live: { updatedAt: cols.updatedAt, error: cols.error, warmingUp: cols.warmingUp, igniting: (cols.explosive ?? []).length },
+      research: { running: this.jobs.running, progress: this.jobs.progress, last: this.jobs.last },
+      generatedAt: Date.now(),
+    };
+    this.todayCache = { at: Date.now(), value };
+    return value;
+  }
+
+  async brief(ctx) {
+    return brief(ctx, this);
   }
 
   // ---- terminal data
@@ -390,14 +567,19 @@ export class Service {
     return new Set(loadExplosive(this.db).filter((r) => r.isExplosive).map((r) => r.wallet));
   }
 
+  // Background research uses its own GMGN lane when the server provides one.
+  get jobG() {
+    return this.gJob ?? this.g;
+  }
+
   async runStudy({ limit = 60, onProgress = () => {} } = {}) {
-    const tokens = await pickStudyTokens(this.g, this.db, { limit });
-    return runStudy(this.g, this.db, { tokens, explosive: this.explosiveSet(), onProgress, log: this.log });
+    const tokens = await pickStudyTokens(this.jobG, this.db, { limit });
+    return runStudy(this.jobG, this.db, { tokens, explosive: this.explosiveSet(), onProgress, log: this.log });
   }
 
   async runWalletMeasure({ wallets = null, skipFreshMs = 6 * 3600_000, onProgress = () => {} } = {}) {
     const u = this.user();
-    return runExplosiveAnalysis(this.g, this.db, { wallets, skipFreshMs: wallets ? 0 : skipFreshMs, sizeUsd: u.sizeUsd, delaySec: u.delaySec, impactPct: u.impactPct, fees: await this.fees(), onProgress, log: this.log });
+    return runExplosiveAnalysis(this.jobG, this.db, { wallets, skipFreshMs: wallets ? 0 : skipFreshMs, sizeUsd: u.sizeUsd, delaySec: u.delaySec, impactPct: u.impactPct, fees: await this.fees(), onProgress, log: this.log });
   }
 
   // Wallets the history study caught getting in before a breakout: prefilter, profile, measure.
@@ -408,7 +590,7 @@ export class Service {
       .filter((c) => !have.has(c.wallet))
       .sort((a, b) => b.sources.length - a.sources.length);
     onProgress({ phase: 'prefilter', done: 0, total: cands.length });
-    const profits = await this.g.walletProfits(cands.map((c) => c.wallet), '30d');
+    const profits = await this.jobG.walletProfits(cands.map((c) => c.wallet), '30d');
     const { keep } = prefilter(profits, { days: 30, maxBuysPerDay: 40 });
     const bySrc = new Map(cands.map((c) => [c.wallet, c]));
     const deep = keep.sort((a, b) => (bySrc.get(b.wallet)?.sources.length ?? 0) - (bySrc.get(a.wallet)?.sources.length ?? 0)).slice(0, maxDeep);
@@ -418,7 +600,7 @@ export class Service {
     for (const k of deep) {
       onProgress({ phase: 'reading early wallets', done, total: deep.length });
       try {
-        const p = await deepProfile(this.g, k.wallet, { log: this.log });
+        const p = await deepProfile(this.jobG, k.wallet, { log: this.log });
         p.discovery = { sources: bySrc.get(k.wallet)?.sources ?? [], tags: bySrc.get(k.wallet)?.tags ?? [], realizedUsd30d: k.realizedUsd30d, buys30d: k.buys30d };
         save.run(k.wallet, JSON.stringify(p), Date.now());
       } catch (e) {

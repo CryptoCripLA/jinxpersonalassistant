@@ -28,8 +28,12 @@ if (!api) {
   process.exit(1);
 }
 const db = openDb(DB_PATH);
-const g = new Gmgn({ api, db, plan: GMGN_PLAN });
+// Two lanes on one GMGN key: what you click gets its own share so research never queues it.
+const g = new Gmgn({ api, db, plan: GMGN_PLAN, headroom: 0.35 });
+const gJob = new Gmgn({ api, db, plan: GMGN_PLAN, headroom: 0.45, peers: [g] });
+g.peers.push(gJob);
 const svc = new Service({ g, db, exportDir: EXPORT_DIR, log: (m) => console.log(m) });
+svc.gJob = gJob;
 const grokKey = grokFromEnv(DATA_DIR);
 svc.grok = grokKey ? new GrokAssistant({ apiKey: grokKey.apiKey, svc, log: (m) => console.log(m) }) : null;
 const claudeClient = svc.grok ? null : claudeFromEnv(DATA_DIR);
@@ -95,11 +99,18 @@ async function pulseTick() {
     pulseBusy = false;
   }
 }
+// Followed live: wallets on the copy desk, today's recommended traders, and the explosive list.
 function refreshWatchedWallets() {
-  svc.stream.watchWallets(svc.explosiveBoard().filter((r) => r.isExplosive).slice(0, 50).map((r) => r.wallet));
+  const set = new Set([
+    ...svc.desk.watches().map((w) => w.wallet),
+    ...(svc.todayCache?.value?.traders?.picks ?? []).map((p) => p.wallet),
+    ...svc.explosiveBoard().filter((r) => r.isExplosive).map((r) => r.wallet),
+  ]);
+  svc.stream.watchWallets([...set].slice(0, 60));
 }
 function startLive() {
   if (pulseTimer) return;
+  if (!svc.pulse.updatedAt || Date.now() / 1000 - svc.pulse.updatedAt > 120) svc.pulse.reset();
   refreshWatchedWallets();
   svc.stream.start();
   pulseTick();
@@ -120,6 +131,21 @@ setInterval(() => clients.size && refreshWatchedWallets(), 5 * 60_000);
 const ROUTES = {
   'GET /api/status': async () => ({ ...(await svc.status()), live: { clients: clients.size, pulse: Boolean(pulseTimer), pulseUpdatedAt: svc.pulse.updatedAt, pulseError: svc.pulse.error, stream: { open: svc.stream.open, ...svc.stream.stats } }, ai: svc.grok ? 'grok' : svc.claude ? 'claude' : 'off', aiSpentUsd: svc.grok?.spentUsd ?? 0, pumpfun: svc.pf.stats, jobs: svc.jobs }),
   'GET /api/pulse': () => svc.pulseColumns(),
+  'GET /api/today': (q) => svc.today({ fresh: q.get('fresh') === '1' }),
+  'GET /api/account': () => svc.accountView(),
+  'GET /api/prefs': () => svc.prefsView(),
+  'POST /api/prefs': (q, b) => svc.setPrefs(b ?? {}),
+  'POST /api/brief': async (q, b) => (await svc.brief(screenContext(b))) ?? { text: null },
+  'POST /api/copy/start': async (q, b) => {
+    const w = address(b.wallet, 'wallet address');
+    const mode = b.mode ?? 'watch';
+    if (!['watch', 'confirm', 'auto'].includes(mode)) throw bad('mode must be watch, confirm or auto');
+    if (mode === 'auto' && b.confirmText !== 'AUTO') throw bad('Type AUTO to let the desk buy without asking you each time.');
+    const r = await svc.copyWallet(w, { watchOnly: mode === 'watch' });
+    if (mode !== 'watch') svc.desk.setConfig({ mode });
+    svc.todayCache = null;
+    return { ...r, copy: svc.copyState(), automaticSwitch: process.env.GMGN_ALLOW_AUTOMATED_TRADES === '1' };
+  },
   'GET /api/suggestions': (q) => svc.suggestions({ refresh: q.get('refresh') === '1' }),
   'GET /api/boards': () => svc.boards(),
   'GET /api/coins': (q) => svc.opportunities(q.get('category') || 'graduated'),
@@ -135,7 +161,7 @@ const ROUTES = {
     svc.stream.watchTokens(list);
     return { watching: list };
   },
-  'POST /api/trade/quote': (q, b) => svc.trader.quote({ side: b.side, token: address(b.token, 'coin address'), usd: b.usd != null ? Number(b.usd) : undefined, pct: b.pct != null ? Number(b.pct) : undefined, slippage: Math.min(50, Math.max(1, Number(b.slippage) || 30)) }),
+  'POST /api/trade/quote': (q, b) => svc.trader.quote({ side: b.side, token: address(b.token, 'coin address'), usd: b.usd != null ? Number(b.usd) : undefined, pct: b.pct != null ? Number(b.pct) : undefined, slippage: Math.min(50, Math.max(1, Number(b.slippage) || 30)), exitPlan: svc.exitPlanFor(b), tip: b.tip === 'fast' ? 'fast' : 'normal' }),
   'POST /api/trade/confirm': async (q, b) => {
     const o = await svc.trader.confirm(String(b.quoteId));
     broadcast('order', o);
@@ -167,7 +193,7 @@ const ROUTES = {
 const PATTERNS = [
   [new RegExp(`^/api/coin/(${ADDR})$`), (m) => svc.coin(m[1])],
   [new RegExp(`^/api/coin/(${ADDR})/candles$`), (m, q) => svc.candles(m[1], ['1m', '5m', '15m', '1h'].includes(q.get('res')) ? q.get('res') : '1m')],
-  [new RegExp(`^/api/wallet/(${ADDR})$`), async (m) => ({ ...(await svc.walletDetail(m[1])), explosive: svc.walletExplosive(m[1]) })],
+  [new RegExp(`^/api/wallet/(${ADDR})$`), async (m) => ({ ...(await svc.walletDetail(m[1])), explosive: svc.walletExplosive(m[1]), card: await svc.traderCard(m[1]) })],
 ];
 
 const ALLOWED_HOSTS = new Set([`127.0.0.1:${PORT}`, `localhost:${PORT}`]);

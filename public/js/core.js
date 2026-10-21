@@ -45,6 +45,8 @@ const ICONS = {
   link: 'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1',
   copy: 'M9 9h10v10H9zM5 15V5h10',
   refresh: 'M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7',
+  check: 'M5 12.5 10 17l9-10',
+  minus: 'M6 12h12',
 };
 export function icon(name) {
   return svg('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' }, svg('path', { d: ICONS[name] }));
@@ -66,6 +68,7 @@ export function usd(x) {
   return `${s}$${a.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 export const usdSigned = (x) => (isNum(x) && x > 0 ? `+${usd(x)}` : usd(x));
+export const usdWhole = (x) => (isNum(x) && Number.isInteger(x) ? `$${x.toLocaleString('en-US')}` : usd(x));
 export function usdShort(x) {
   if (!isNum(x)) return 'n/a';
   const a = Math.abs(x);

@@ -37,9 +37,18 @@ test('bucket drains at plan rate: free plan allows one wallet_activity burst the
   assert.equal(b.take(5), 0, 'fully drained after 10 s');
 });
 
-test('server ban pauses every call until the reset time', () => {
+test('server ban pauses every call until the reset time, then the normal drain', () => {
   let t = 1_000_000;
   const b = new LeakyBucket(PLANS.pro, () => t);
   b.banUntil(1_000_000 + 300_000);
-  assert.equal(b.take(1), 300_000);
+  assert.equal(b.take(1), 300_020, 'the bucket restarts full at the reset time: 1 unit at 50/s is 20 ms');
+});
+
+test('after a ban, waiting callers leave one at a time at the plan rate instead of all at once', () => {
+  let t = 0;
+  const b = new LeakyBucket(PLANS.plus, () => t);
+  b.banUntil(10_000);
+  const waits = [b.take(2), b.take(2), b.take(2)];
+  assert.ok(waits[0] >= 10_000);
+  assert.ok(waits[1] - waits[0] >= 100 && waits[2] - waits[1] >= 100, 'weight-2 calls spaced 100 ms apart at 20/s');
 });

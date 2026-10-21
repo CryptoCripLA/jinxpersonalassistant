@@ -83,3 +83,30 @@ test('a refused order is reported with GMGN\'s reason', async () => {
   assert.equal(o.state, 'failed');
   assert.match(o.detail.reason, /insufficient balance/);
 });
+
+test('an exit plan rides on the buy as GMGN condition orders: partial take-profits, trailing stop, hard stop', async () => {
+  const { t, calls } = setup();
+  const plan = { takeProfits: [{ multiple: 2, sellPct: 30 }, { multiple: 3, sellPct: 30 }, { multiple: 5, sellPct: 20 }], trailFromMultiple: 2, trailDrawdownPct: 30, hardStopPct: 40 };
+  const q = await t.quote({ side: 'buy', token: 'ZAP', usd: 25, exitPlan: plan, tip: 'fast' });
+  assert.match(q.exitText, /30% at 2x/);
+  assert.match(q.exitText, /if it falls 40%/);
+  await t.confirm(q.quoteId);
+  const b = calls.swap[0];
+  assert.equal(b.sell_ratio_type, 'buy_amount');
+  assert.deepEqual(b.condition_orders, [
+    { order_type: 'profit_stop', side: 'sell', price_scale: '100', sell_ratio: '30' },
+    { order_type: 'profit_stop', side: 'sell', price_scale: '200', sell_ratio: '30' },
+    { order_type: 'profit_stop', side: 'sell', price_scale: '400', sell_ratio: '20' },
+    { order_type: 'profit_stop_trace', side: 'sell', price_scale: '100', drawdown_rate: '30', sell_ratio: '100' },
+    { order_type: 'loss_stop', side: 'sell', price_scale: '40', sell_ratio: '100' },
+  ]);
+  assert.ok(Number(b.priority_fee) > 0.001 && Number(b.tip_fee) > 0.001, 'fast tip pays more to land first');
+});
+
+test('without an exit plan the buy carries no condition orders and normal tips', async () => {
+  const { t, calls } = setup();
+  const q = await t.quote({ side: 'buy', token: 'ZAP', usd: 25 });
+  await t.confirm(q.quoteId);
+  assert.equal(calls.swap[0].condition_orders, undefined);
+  assert.equal(calls.swap[0].priority_fee, '0.001');
+});

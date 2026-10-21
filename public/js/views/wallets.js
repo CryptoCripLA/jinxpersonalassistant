@@ -2,6 +2,7 @@
 // on real GMGN prices, copy delay and every fee), with the coin's peak, the wallet's capture and
 // your copy kept apart on every recent coin.
 import { h, clear, api, icon, usd, usdShort, usdSigned, pct, mult, short, age, duration, isNum, signClass, label, toast, explainAttrs } from '../core.js';
+import { traderCard, skippedList } from '../cards.js';
 
 const FLAG_WORDS = {
   SNIPER_SPEED: 'Sells within 5 minutes: faster than a copy',
@@ -22,13 +23,18 @@ function jobLine(j) {
 export async function openWallets(root, hooks) {
   hooks.setContext({ view: 'wallets', coin: null });
   clear(root).append(h('div', { class: 'page' }, h('div', { class: 'skeleton' }), h('div', { class: 'skeleton' })));
-  const [rows, jobs] = await Promise.all([api('/api/wallets/explosive'), api('/api/jobs').catch(() => null)]);
+  const [rows, jobs, today] = await Promise.all([api('/api/wallets/explosive'), api('/api/jobs').catch(() => null), api('/api/today').catch(() => null)]);
   const status = h('span', { class: 'faint' }, jobLine(jobs));
   const runBtn = (kind, text) => h('button', { class: 'btn small', type: 'button', onclick: async () => { try { await api('/api/jobs', { kind }); toast('Research started. It runs in the background; this page updates when you reopen it.'); status.textContent = 'Working…'; } catch (e) { toast(e.message); } } }, icon('refresh'), text);
+  const picks = today?.traders?.picks ?? [];
   const page = h('div', { class: 'page' },
     h('div', { class: 'page-head' },
-      h('div', {}, h('h1', explainAttrs('wallets.board'), 'Explosive wallets'), h('p', {}, 'Ranked by what you would have banked copying each wallet with your trade size, a few seconds late, after every fee, at up to 3 coins a day. A wallet\'s own profit is not the ranking.')),
-      h('div', { class: 'actions' }, status, runBtn('discover', 'Find more early wallets'), runBtn('wallets', 'Re-measure'))));
+      h('div', {}, h('h1', explainAttrs('wallets.board'), 'Traders for you'), h('p', {}, 'I research wallets that keep catching big moves, replay their recent trades with your trade size, a few seconds late and after every fee, and recommend only the ones that fit your style.')),
+      h('div', { class: 'actions' }, status, runBtn('discover', 'Find more traders'), runBtn('wallets', 'Re-measure'))),
+    h('div', { class: 'recs' }, picks.length ? picks.map((p) => traderCard(p, hooks, { targetUsd: today.prefs.dailyTargetUsd })) : h('p', { class: 'empty' }, 'No measured trader fits your style yet. Research keeps adding traders; you can widen your style on Today.')),
+    today ? skippedList(today.traders.skipped ?? [], hooks) : null);
+  const details = h('details', { class: 'more' }, h('summary', {}, `All ${rows.length} measured wallets (detailed table)`));
+  page.append(details);
   if (!rows.length) {
     page.append(h('p', { class: 'empty' }, 'No wallet has been measured yet. Press "Re-measure" to start; each wallet takes about 20 seconds at your GMGN plan\'s speed.'));
     clear(root).append(page);
@@ -36,8 +42,8 @@ export async function openWallets(root, hooks) {
   }
   const measured = rows.length;
   const explosive = rows.filter((r) => r.isExplosive).length;
-  page.append(h('p', { class: 'summary-line' }, `${measured} wallets measured; ${explosive} handed a follower at least one 3x copy. `, label('SIMULATED'), ' ', label('HISTORICAL')));
-  page.append(h('table', { class: 'grid' },
+  details.append(h('p', { class: 'summary-line' }, `${measured} wallets measured; ${explosive} handed a follower at least one 3x copy. `, label('SIMULATED'), ' ', label('HISTORICAL')));
+  details.append(h('table', { class: 'grid' },
     h('thead', {}, h('tr', {},
       h('th', {}, 'Wallet'),
       h('th', { class: 'n', ...explainAttrs('wallets.perday') }, 'Your $ per active day'),
@@ -115,7 +121,20 @@ export async function openWallet(root, wallet, hooks) {
   const page = h('div', { class: 'page wallet-page' },
     h('div', { class: 'page-head' },
       h('div', {}, h('h1', {}, name), h('p', { class: 'faint' }, wallet)),
-      h('div', { class: 'actions' }, measureBtn, copyBtn, h('a', { class: 'btn small', href: `https://gmgn.ai/sol/address/${wallet}`, target: '_blank', rel: 'noopener noreferrer' }, icon('link'), 'GMGN'))));
+      h('div', { class: 'actions' }, measureBtn, h('a', { class: 'btn small', href: `https://gmgn.ai/sol/address/${wallet}`, target: '_blank', rel: 'noopener noreferrer' }, icon('link'), 'GMGN'))));
+  if (d.card) {
+    const card = traderCard(d.card, hooks, {});
+    page.append(card, h('section', { class: 'behavior' },
+      h('h2', {}, 'How this trader behaves ', label('HISTORICAL')),
+      h('ul', { class: 'reasons' }, Object.values(d.card.behavior ?? {}).map((b) => h('li', {}, b))),
+      d.card.fit.good.length ? h('p', { class: 'rec-sub' }, d.card.fit.good.join(' ')) : null));
+    if (sessionStorage.getItem('openCopy') === wallet) {
+      sessionStorage.removeItem('openCopy');
+      setTimeout(() => card.querySelector('.btn.primary')?.click(), 50);
+    }
+  } else {
+    page.append(copyBtn);
+  }
   if (x) {
     const e = x.explosive;
     page.append(

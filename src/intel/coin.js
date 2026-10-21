@@ -6,6 +6,7 @@ import { momentumScore } from '../analysis/momentum.js';
 import { earlyBuyersFromTrades, earlyBuyersFromTopTraders, summarizeEarly } from '../analysis/earlybuyers.js';
 import { scenario } from '../analysis/scenario.js';
 import { cleanLabel } from '../text/plain.js';
+import { safetyChecks } from '../analysis/filters.js';
 
 const num = (v) => (v === null || v === undefined || v === '' ? null : Number.isFinite(Number(v)) ? Number(v) : null);
 
@@ -54,7 +55,7 @@ export async function coinDetail({ g, pf, token, explosive = new Map(), fees, si
   let note = '';
   if (isPump && pf) {
     try {
-      const r = await pf.trades(token, { maxPages: 10 });
+      const r = await pf.trades(token, { maxPages: 6 });
       if (r.trades.length && r.complete) {
         buyers = earlyBuyersFromTrades(r.trades, { totalSupply: supply, priceNowUsd, creationTs: created });
         source = 'pump.fun trades';
@@ -161,6 +162,17 @@ export async function coinDetail({ g, pf, token, explosive = new Map(), fees, si
     },
     rates,
     momentum,
+    checks: safetyChecks({
+      renounced_mint: listItem?.renounced_mint ?? security?.renounced_mint,
+      renounced_freeze_account: listItem?.renounced_freeze_account ?? security?.renounced_freeze_account,
+      creator_token_status: info.dev?.creator_token_status ?? listItem?.creator_token_status,
+      dev_team_hold_rate: flat.dev_team_hold_rate,
+      top_10_holder_rate: flat.top_10_holder_rate,
+      twitter: link.twitter_username || listItem?.twitter, website: link.website || listItem?.website, telegram: link.telegram || listItem?.telegram,
+      twitter_dup: listItem?.twitter_dup, website_dup: listItem?.website_dup,
+      liquidity: num(info.liquidity), volume_24h: num(p.volume_24h),
+      created_timestamp: created,
+    }, { now: nowSec }),
     early: { source, note, buyers: buyers.slice(0, 60), summary },
     explosiveIn: explosiveIn.map((b) => ({ wallet: b.wallet, name: b.explosiveName, firstBuyTs: b.firstBuyTs, entryMcapUsd: b.entryMcapUsd, stillHolding: b.stillHolding })),
     holders,

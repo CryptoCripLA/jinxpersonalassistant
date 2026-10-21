@@ -5,26 +5,26 @@ primary_target: "public/index.html"
 related_targets: []
 ---
 
-# Surface: K TRADES terminal (public/index.html)
+# Surface: TRADES (public/index.html)
 
-Mode: Operate. The owner hunts 7x-19x+ moves in minutes to hours with about $25 entries,
-1-3 coins per active day, in desktop Chrome through an SSH tunnel, often at night.
-Task: spot explosive coins early, check who bought first and the risks, buy or sell from the
-same screen, study wallets that keep catching big moves, and ask the built-in assistant about
-anything on screen. Constraints: dollars only; HISTORICAL / SIMULATED / LIVE always labelled;
-no build step; 127.0.0.1 only. Direction pinned by the owner: FOMO/GMGN-style terminal.
+Mode: Operate. Owner order 2026-10-21 re-pinned the brief: TRADES is his personal AI trading
+expert, not a GMGN clone. Opening it must give answers, not homework: the best traders for his
+style, the strongest opportunities, the evidence, the dollars he could realistically capture,
+how that relates to today's target, and an obvious action. Dense tables stay as secondary
+detail views. He trades about $25, 1-3 coins a day, hunting 7x-19x+ within minutes to hours.
+All money in USD; HISTORICAL / SIMULATED / LIVE labelled; 127.0.0.1 only; no build step.
 
 ## Direction contract
 
-THESIS: A GMGN-grade trading terminal where every number can be asked about in place. It refuses the chatbot-in-a-corner: the assistant is a docked desk analyst that reads what you clicked.
+THESIS: The analyst answers first. Every screen opens with a verdict in plain English and one-click actions; numbers support the verdict instead of replacing it. It refuses the dashboard-of-tables default (GMGN's grammar) as the primary experience.
 
-OWN-WORLD: K TRADES smoked graphite (cool blue-black panels, hairline dividers) with gold reserved for money, focus and the analyst; green for buying, coral-red for selling, amber for Ignition. Hanken Grotesk with tabular figures everywhere; Bodoni only in the wordmark. Dense rows, square-ish 6px radii, no cards inside cards.
+OWN-WORLD: K TRADES smoked graphite with gold reserved for money, focus and the analyst; green buys, coral risks, amber ignition. Hanken Grotesk with tabular figures; Bodoni only in the wordmark. Recommendation cards follow the owner's mockup: a titled card, a two-by-two of facts (coins a day, usually holds, last active, your historical copy result), a "Why I picked this" sentence, a filled primary action and an outlined Explain action.
 
-STORY: He sees what is igniting now, opens it, sees who got in first and whether they are still holding, reads the $25 outcome in dollars, and buys with one confirm, or asks "explain this" about anything he does not understand.
+STORY: He opens Today, reads who to copy and what is igniting with the dollars at stake against his target, presses Copy this trader or opens the coin and buys with one confirm; anything unclear he clicks and the analyst explains it.
 
-FIRST VIEWPORT: 48px top bar (wordmark, Pulse / Wallets / History / Portfolio / Copy desk tabs, search, live dot, balance, Explain toggle). Left 3/4: four GMGN-style columns, Explosive now first, then New, About to graduate, Graduated; each row logo, symbol, age, market cap, buys a minute, smart and explosive-wallet chips, curve bar, momentum badge. Right 1/4: the desk analyst rail, always open, with suggested questions and answers carrying evidence and labels.
+FIRST VIEWPORT: Top bar (TRADES, Today / Traders / Live coins / History / Portfolio / Copy desk, search, live status, balance, Explain). Left: greeting with account line (cash, available, desk, GMGN status), Today's target with the plan sentence, three trader cards, three opportunity cards, and a compact "skipped and why". Right: the analyst rail, already speaking: its briefing for this screen with actions.
 
-FORM: GMGN terminal grammar (brief-pinned, list position 1 of 1), standard web controls. Signature interaction: Explain mode, where any data-explain element clicked gets a gold tether outline and the analyst answers about that element with its live value. Motion grammar: a single gold sweep when a coin enters Explosive now or a followed wallet buys; 150-200ms state transitions otherwise; reduced-motion swaps the sweep for an instant tint.
+FORM: owner-pinned (mockup card, list position 1 of 1), standard web controls. Signature interaction: the analyst briefs every screen on arrival and pings when a recommended trader buys; Explain mode turns any element into a question. Motion: gold sweep on new live alerts; 150-200ms state transitions; reduced motion swaps to an instant tint.
 seed: none (direction pinned by owner brief)
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance

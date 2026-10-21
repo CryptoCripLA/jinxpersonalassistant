@@ -10,6 +10,7 @@ let tethered = null;
 let onAction = () => {};
 
 const SUGGEST = {
+  today: () => ["What's the most promising opportunity right now?", 'Which wallet repeatedly catches explosive moves?', 'Find traders getting in before graduation', `How much could $${size} make if this reaches 7x?`],
   pulse: () => ["What's the most promising opportunity right now?", 'Which of these coins has the strongest early momentum?', 'Show me the explosive wallets', 'Find traders getting in before graduation'],
   coin: () => ['Why is this coin pumping?', 'Who bought before everyone else?', 'Are the early profitable wallets still holding?', 'Could this coin realistically reach 10x from here?', `What happens if I put $${size} into this?`, `How much could $${size} make if this reaches 7x?`, 'When are the profitable wallets selling?', "What's X saying about this coin?"],
   wallets: () => ['Which wallet repeatedly catches explosive moves?', 'Find traders getting in before graduation', 'Explain the edge kept column'],
@@ -47,6 +48,48 @@ function actionButton(a) {
   return h('button', { class: 'btn small', type: 'button', onclick: () => (a.kind === 'ask' ? ask(a.question) : onAction(a)) }, a.label);
 }
 
+function renderAnswer(r) {
+  const meta = h('div', { class: 'meta' }, r.label ? label(r.label) : null, r.by === 'grok' ? `Grok${r.costUsd ? `, ${r.costUsd < 0.01 ? 'under 1¢' : `about ${Math.round(r.costUsd * 100)}¢`}` : ''}` : r.by === 'built-in' ? (r.proactive ? 'briefing from app data' : 'from app data') : '');
+  return h('div', { class: `msg ai${r.proactive ? ' brief' : ''}` },
+    h('p', { class: 'lead' }, r.text),
+    r.evidence?.length ? h('ul', {}, r.evidence.map((e) => h('li', {}, e))) : null,
+    r.actions?.length ? h('div', { class: 'acts' }, r.actions.map(actionButton)) : null,
+    meta);
+}
+
+// The analyst speaks first: one briefing per screen it lands on (not repeated within a minute).
+const briefed = new Map();
+export async function autoBrief(context) {
+  const key = [context.view, context.coin?.address, context.wallet].filter(Boolean).join(':');
+  if (Date.now() - (briefed.get(key) ?? 0) < 60_000) return;
+  briefed.set(key, Date.now());
+  try {
+    const r = await api('/api/brief', { context });
+    if (!r?.text) return;
+    $('feed').append(renderAnswer(r));
+    scrollFeed();
+  } catch { /* briefings are best-effort */ }
+}
+
+// Unprompted heads-ups (a recommended trader just bought something).
+export function alert(text, actions = []) {
+  $('feed').append(h('div', { class: 'msg ai alert' }, h('p', { class: 'lead' }, text), actions.length ? h('div', { class: 'acts' }, actions.map(actionButton)) : null, h('div', { class: 'meta' }, label('LIVE'), new Date().toLocaleTimeString())));
+  scrollFeed();
+}
+
+// Copies waiting for your tap ("Ask me first"), pinned above the conversation.
+export function showApprovals(list, { approve, skip }) {
+  const box = $('approvalsRail');
+  box.hidden = !list.length;
+  clear(box);
+  for (const i of list) {
+    const left = Math.max(0, Math.round((i.detail.expiresAt - Date.now()) / 1000));
+    box.append(h('div', { class: 'approval' },
+      h('p', {}, h('b', {}, `Copy ${i.symbol || 'a coin'}?`), ` ${i.wallet.slice(0, 4)}… just bought it. Buy $${i.detail.sizeUsd}? `, h('span', { class: 'faint' }, `${left}s left`)),
+      h('div', { class: 'acts' }, h('button', { class: 'btn small buy', type: 'button', onclick: () => approve(i.id) }, `Buy $${i.detail.sizeUsd}`), h('button', { class: 'btn small', type: 'button', onclick: () => skip(i.id) }, 'Skip'))));
+  }
+}
+
 export async function ask(question, { element = null } = {}) {
   const q = String(question ?? '').trim();
   if (!q) return;
@@ -58,12 +101,7 @@ export async function ask(question, { element = null } = {}) {
   try {
     const context = { ...ctx, element: element ?? ctx.element };
     const r = await api('/api/ask', { question: q, context });
-    const meta = h('div', { class: 'meta' }, r.label ? label(r.label) : null, r.by === 'grok' ? `Grok${r.costUsd ? `, ${r.costUsd < 0.01 ? 'under 1¢' : `about ${Math.round(r.costUsd * 100)}¢`}` : ''}` : r.by === 'built-in' ? 'from app data' : '');
-    pending.replaceWith(h('div', { class: 'msg ai' },
-      h('p', { class: 'lead' }, r.text),
-      r.evidence?.length ? h('ul', {}, r.evidence.map((e) => h('li', {}, e))) : null,
-      r.actions?.length ? h('div', { class: 'acts' }, r.actions.map(actionButton)) : null,
-      meta));
+    pending.replaceWith(renderAnswer(r));
   } catch (e) {
     pending.replaceWith(h('div', { class: 'msg ai' }, h('p', { class: 'lead' }, `I could not answer that: ${e.message}`)));
   }
@@ -133,7 +171,7 @@ export function initAssistant({ onActionFn }) {
     } else if (ev.key === 'Escape' && explaining) setExplain(false);
   });
   $('feed').append(h('div', { class: 'msg ai' },
-    h('p', { class: 'lead' }, 'I watch the same screens you do. Click a coin or wallet and ask in your own words, or turn on Explain (press ?) and click anything.'),
+    h('p', { class: 'lead' }, 'I research for you and brief you on every screen. Ask me anything in your own words, or turn on Explain (press ?) and click whatever is unclear.'),
     h('ul', {}, h('li', {}, 'Numbers come from GMGN and pump.fun live, never made up.'), h('li', {}, 'HISTORICAL means a wallet really did it; SIMULATED is what your $25 copy would have done; LIVE is your real money.'))));
   renderSugs();
 }

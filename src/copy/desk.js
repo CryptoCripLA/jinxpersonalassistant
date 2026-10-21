@@ -189,6 +189,8 @@ export class CopyDesk {
     const base = { sizeUsd, walletSpentUsd: Number(r.cost_usd), walletPriceUsd: Number(r.price_usd), seenAt: this.now(), walletTs: r.timestamp };
     const skip = this.buySkipReason(w, r);
     if (skip) return this.createIntent(w, r, 'buy', 'skipped', { ...base, reason: skip });
+    // "watch first" (per wallet): prove a trader for a week or two before risking money on it
+    if (w.settings.watchOnly) return this.createIntent(w, r, 'buy', 'observed', { ...base, reason: 'Watching this trader first: noted what it would have copied, no money spent.' });
     if (cfg.mode === 'off') return this.createIntent(w, r, 'buy', 'observed', { ...base, reason: 'Copy desk is OFF. This is what it would have copied.' });
     const lim = await this.limitReason(sizeUsd);
     if (lim) return this.createIntent(w, r, 'buy', 'skipped', { ...base, reason: lim });
@@ -309,6 +311,11 @@ export class CopyDesk {
         { order_type: 'profit_stop', side: 'sell', price_scale: String(s.takeProfitPct), sell_ratio: '100' },
         { order_type: 'loss_stop', side: 'sell', price_scale: String(s.stopLossPct), sell_ratio: '100' },
       ];
+    }
+    // Your hard stop (Today > Your style) rides on every copied buy unless the settings sheet
+    // already chose its own stop; the copy still follows the trader's sells as before.
+    else if (i.side === 'buy' && s.hardStopPct > 0) {
+      body.condition_orders = [{ order_type: 'loss_stop', side: 'sell', price_scale: String(s.hardStopPct), sell_ratio: '100' }];
     }
     try {
       const res = await this.g.swap(body);

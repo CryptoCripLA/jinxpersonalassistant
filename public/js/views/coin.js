@@ -2,6 +2,7 @@
 // holders, safety) and the trade column (Buy/Sell with a confirmed quote, $25 scenario, momentum).
 import { h, clear, api, icon, logo, usd, usdShort, usdSigned, priceUsd, pct, pctSigned, mult, short, age, isNum, signClass, label, toast, explainAttrs } from '../core.js';
 import { CoinChart } from '../chart.js';
+import { checkList } from '../cards.js';
 
 let state = null;
 let usdPerSol = null;
@@ -23,7 +24,13 @@ const kpi = (k, v, key, cls = '', big = false) => h('div', { class: `kpi${big ? 
 
 export async function openCoin(root, address, hooks) {
   closeCoin();
-  state = { address, hooks, tab: 'why', res: '1m', mode: 'mcap', side: 'buy', amount: hooks.sizeUsd ?? 25, pct: 50, slippage: 30, trades: [], quote: null };
+  state = { address, hooks, tab: 'why', res: '1m', mode: 'mcap', side: 'buy', amount: hooks.sizeUsd ?? 25, pct: 50, slippage: 30, trades: [], quote: null, tip: 'normal', useExit: true, prefs: null };
+  api('/api/prefs').then((p) => {
+    if (!state) return;
+    state.prefs = p;
+    state.useExit = p.useExitPlan;
+    if (state.sideEl) renderSide();
+  }).catch(() => {});
   clear(root).append(h('div', { class: 'page' }, h('div', { class: 'skeleton' }), h('div', { class: 'skeleton' }), h('p', { class: 'faint' }, 'Reading live data from GMGN and pump.fun…')));
   let d;
   try {
@@ -85,7 +92,13 @@ function render(root) {
       state.tabsEl,
       state.paneEl),
     state.sideEl));
-  state.chart = new CoinChart(state.chartEl);
+  try {
+    state.chart = new CoinChart(state.chartEl);
+  } catch (e) {
+    // a broken chart must never take the trade panel and the data down with it
+    state.chart = { set() {}, setMode() {}, destroy() {} };
+    state.chartEl.append(h('div', { class: 'note' }, `Chart unavailable: ${e.message}`));
+  }
   renderHead();
   renderTabs();
   renderTab();
@@ -146,6 +159,7 @@ function renderTab() {
     const m = d.momentum;
     p.append(
       h('p', { class: 'summary-line' }, `Stage `, h('b', { class: `stage ${m.stage}` }, m.stage), `. Momentum ${m.score}/100 from live flow (${d.rates?.source ?? 'GMGN running totals'}).`),
+      d.checks ? h('div', { style: { margin: '6px 0 12px' } }, h('p', { class: d.checks.pass ? 'up' : 'down', style: { fontSize: '13px', fontWeight: 600, marginBottom: '4px' } }, d.checks.pass ? `Passes the hard filters (${d.checks.passed} of ${d.checks.checks.length} checks green).` : 'Fails a hard filter: I would not buy this.'), checkList(d.checks)) : null,
       h('ul', { class: 'reasons' }, m.reasons.map((r) => h('li', {}, r)), m.warnings.map((w) => h('li', { class: 'risk' }, w))),
       h('p', { class: 'summary-line', style: { marginTop: '14px' } }, d.early?.summary?.text ?? ''),
       h('div', { class: 'stats' },
@@ -193,6 +207,7 @@ function renderTab() {
   } else if (state.tab === 'safety') {
     const s = d.safety;
     const row = (k, v, bad) => [h('span', { class: 'k' }, k), h('span', { class: bad ? 'down' : '' }, v)];
+    if (d.checks) p.append(h('div', { style: { marginBottom: '14px' } }, checkList(d.checks)));
     p.append(h('div', { class: 'safety', style: { maxWidth: '560px' }, ...explainAttrs('coin.safety') },
       row('Rug-pull risk', pct(s.rugRatio), s.rugRatio > 0.3),
       row('Creator sold', s.devSold ? 'yes' : 'no', false),
@@ -271,7 +286,7 @@ function tradeBlock() {
     status.className = 'status-line';
     status.textContent = 'Asking GMGN for a live price…';
     try {
-      const q = await api('/api/trade/quote', { side: state.side, token: state.address, usd: isBuy ? state.amount : undefined, pct: isBuy ? undefined : state.pct, slippage: state.slippage });
+      const q = await api('/api/trade/quote', { side: state.side, token: state.address, usd: isBuy ? state.amount : undefined, pct: isBuy ? undefined : state.pct, slippage: state.slippage, tip: state.tip, exitPlan: isBuy && state.useExit ? undefined : false });
       state.quote = q;
       status.textContent = '';
       showQuote(quoteBox, status);
@@ -289,6 +304,11 @@ function tradeBlock() {
     h('div', { class: 'presets', ...explainAttrs(isBuy ? 'trade.amount' : 'trade.sell') }, presetBtns),
     isBuy ? h('label', { class: 'field' }, 'Dollars', amountInput) : null,
     h('label', { class: 'field', ...explainAttrs('trade.slippage', `${state.slippage}%`) }, 'Slippage', slip),
+    h('div', { class: 'field', ...explainAttrs('trade.tip') }, 'Speed',
+      h('div', { class: 'seg', role: 'group' }, [['normal', 'Normal'], ['fast', 'Fast']].map(([v, l]) => h('button', { type: 'button', 'aria-pressed': String(state.tip === v), onclick: (ev) => { state.tip = v; for (const b of ev.target.parentElement.children) b.setAttribute('aria-pressed', String(b === ev.target)); } }, l)))),
+    isBuy && state.prefs ? h('label', { class: 'exit-plan', ...explainAttrs('trade.exit') },
+      h('input', { type: 'checkbox', checked: state.useExit, onchange: (ev) => (state.useExit = ev.target.checked) }),
+      h('span', {}, h('b', {}, 'Exit plan: '), state.prefs.exitText, h('a', { href: '#/today', class: 'faint' }, ' Edit'))) : null,
     getPrice, quoteBox, status,
     h('p', { class: 'faint', style: { fontSize: '11.5px', marginTop: '8px' } }, 'From your GMGN wallet, anti-MEV on. Nothing is spent until you press Confirm on a live price.'));
   return box;
@@ -302,6 +322,8 @@ function showQuote(box, status) {
   const lines = q.side === 'buy'
     ? [['You pay', usd(q.payUsd)], ['You get about', `${Math.round(q.receiveTokens).toLocaleString('en-US')} coins (${usd(q.receiveUsd)})`], ['Worst fill you accept', `${Math.round(q.minReceiveTokens).toLocaleString('en-US')} coins`]]
     : [['You sell', `${q.sellPct}% (${Math.round(q.sellTokens).toLocaleString('en-US')} coins)`], ['You get about', usd(q.receiveUsd)], ['Worst fill you accept', usd(q.minReceiveUsd)]];
+  lines.push(['Network fee and tip', `about ${usd(q.tipUsd)} (${q.tip === 'fast' ? 'fast' : 'normal'})`]);
+  if (q.exitText) lines.push(['Exit orders placed with it', q.exitText]);
   clear(box).append(h('div', { class: 'quote', ...explainAttrs('trade.quote') }, lines.map(([k, v]) => h('div', { class: 'ln' }, h('span', {}, k), h('span', {}, v))), h('div', { class: 'ln' }, label('LIVE'), timer), confirm));
   const tick = () => {
     const left = Math.round((q.expiresAt - Date.now()) / 1000);

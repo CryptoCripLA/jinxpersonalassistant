@@ -3,6 +3,7 @@
 // momentum tape, and ranks an "Explosive now" column by measured momentum. It only runs
 // while the terminal is open, so a closed terminal costs no GMGN calls.
 import { TokenTape, momentumScore } from '../analysis/momentum.js';
+import { safetyChecks } from '../analysis/filters.js';
 import { cleanLabel } from '../text/plain.js';
 
 const num = (v) => (v === null || v === undefined || v === '' ? null : Number.isFinite(Number(v)) ? Number(v) : null);
@@ -15,6 +16,12 @@ export class Pulse {
     this.lists = { new: [], near: [], graduated: [], movers: [] };
     this.updatedAt = null;
     this.error = null;
+    this.polls = 0;
+  }
+
+  // A fresh start (no tab open for a while) measures from scratch: rates need two looks.
+  reset() {
+    this.tape = new TokenTape();
     this.polls = 0;
   }
 
@@ -68,6 +75,7 @@ export class Pulse {
       devSold: t.creator_token_status === 'creator_close',
       rates,
       momentum,
+      checks: safetyChecks(t, { now }),
       explosiveIn,
       source: trending ? 'trending 1m' : 'launch list',
     };
@@ -87,11 +95,11 @@ export class Pulse {
     const movers = keep(this.lists.movers, { trending: true });
     const seen = new Set();
     const explosive = [...cols.near, ...cols.new, ...cols.graduated, ...movers]
-      .filter((v) => v.rates && (v.momentum.stage === 'Ignition' || v.momentum.stage === 'Building'))
+      .filter((v) => v.rates && v.checks.pass && (v.momentum.stage === 'Ignition' || v.momentum.stage === 'Building'))
       .sort((a, b) => b.momentum.score - a.momentum.score)
       .filter((v) => (seen.has(v.address) ? false : seen.add(v.address)))
       .slice(0, 15);
-    return { ...cols, explosive, hidden, updatedAt: this.updatedAt, error: this.error };
+    return { ...cols, explosive, hidden, updatedAt: this.updatedAt, error: this.error, warmingUp: this.polls < 3 };
   }
 
   // The raw GMGN list entry: carries rug ratio and fake-activity rates the token routes lack.

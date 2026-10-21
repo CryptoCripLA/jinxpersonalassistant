@@ -11,6 +11,31 @@ import { usdToLamports, lamportsToUsd } from '../money/usd.js';
 
 export const SOL_MINT = 'So11111111111111111111111111111111111111112';
 const QUOTE_TTL_MS = 30_000;
+// Tip levels: normal for low-conviction entries, fast (higher priority + tip) for the ones you care about.
+export const TIPS = { normal: { priority: 0.001, tip: 0.001 }, fast: { priority: 0.003, tip: 0.003 } };
+
+const mx = (m) => `${Math.round(m * 10) / 10}x`;
+export function describeExitPlan(plan) {
+  if (!plan) return 'No automatic exit: you sell by hand.';
+  const tps = (plan.takeProfits ?? []).map((t) => `${t.sellPct}% at ${mx(t.multiple)}`);
+  const parts = [];
+  if (tps.length) parts.push(`Sells ${tps.length > 1 ? `${tps.slice(0, -1).join(', ')} and ${tps.at(-1)}` : tps[0]}`);
+  if (plan.trailDrawdownPct) parts.push(`once it reaches ${mx(plan.trailFromMultiple ?? 2)}, sells the rest if it falls ${plan.trailDrawdownPct}% from its high`);
+  if (plan.hardStopPct) parts.push(`sells everything if it falls ${plan.hardStopPct}% below your entry`);
+  return `${parts.join('; ')}.`;
+}
+
+// GMGN condition orders (gmgn-swap docs): profit_stop = take-profit, profit_stop_trace = trailing
+// take-profit (activates at price_scale gain, fires after drawdown_rate from the peak),
+// loss_stop = hard stop. price_scale is the % move from entry; sell_ratio is % of the bought amount.
+export function conditionOrders(plan) {
+  if (!plan) return null;
+  const pctUp = (m) => String(Math.round((m - 1) * 100));
+  const out = (plan.takeProfits ?? []).map((t) => ({ order_type: 'profit_stop', side: 'sell', price_scale: pctUp(t.multiple), sell_ratio: String(t.sellPct) }));
+  if (plan.trailDrawdownPct) out.push({ order_type: 'profit_stop_trace', side: 'sell', price_scale: pctUp(plan.trailFromMultiple ?? 2), drawdown_rate: String(plan.trailDrawdownPct), sell_ratio: '100' });
+  if (plan.hardStopPct) out.push({ order_type: 'loss_stop', side: 'sell', price_scale: String(plan.hardStopPct), sell_ratio: '100' });
+  return out.length ? out.slice(0, 10) : null;
+}
 const num = (v) => (v === null || v === undefined || v === '' ? null : Number.isFinite(Number(v)) ? Number(v) : null);
 
 export class Trader {
@@ -19,7 +44,7 @@ export class Trader {
     this.quotes = new Map();
   }
 
-  async quote({ side, token, usd, pct, slippage = 30 }) {
+  async quote({ side, token, usd, pct, slippage = 30, exitPlan = null, tip = 'normal' }) {
     if (side !== 'buy' && side !== 'sell') throw Object.assign(new Error('side must be buy or sell'), { status: 400 });
     const [me, rate, info] = await Promise.all([this.myWalletFn(), this.rateFn(), this.g.tokenInfo(token)]);
     if (!me) throw new Error('Your GMGN wallet address is unavailable, so nothing can be quoted.');
@@ -58,9 +83,12 @@ export class Trader {
           receiveUsd: lamportsToUsd(BigInt(q.output_amount ?? 0), rate),
           minReceiveUsd: lamportsToUsd(BigInt(q.min_output_amount ?? 0), rate),
         };
-    this.quotes.set(id, { id, side, token, symbol: info?.symbol ?? '', params, slippage, quote: q, created, decimals, view, usd: usd ?? null, pct: pct ?? null });
+    const plan = side === 'buy' ? exitPlan : null;
+    const tipLevel = TIPS[tip] ? tip : 'normal';
+    this.quotes.set(id, { id, side, token, symbol: info?.symbol ?? '', params, slippage, quote: q, created, decimals, view, usd: usd ?? null, pct: pct ?? null, plan, tipLevel });
     for (const [k, v] of this.quotes) if (created - v.created > 10 * 60_000) this.quotes.delete(k);
-    return { quoteId: id, side, token, symbol: info?.symbol ?? '', slippagePct: slippage, expiresAt: created + QUOTE_TTL_MS, ...view, label: 'LIVE quote from GMGN' };
+    const tipUsd = (TIPS[tipLevel].priority + TIPS[tipLevel].tip) * rate.usdPerSol;
+    return { quoteId: id, side, token, symbol: info?.symbol ?? '', slippagePct: slippage, expiresAt: created + QUOTE_TTL_MS, ...view, exitText: side === 'buy' ? describeExitPlan(plan) : null, tip: tipLevel, tipUsd, label: 'LIVE quote from GMGN' };
   }
 
   order(id) {
@@ -88,14 +116,20 @@ export class Trader {
     this.db.prepare('INSERT INTO orders (id, side, token, symbol, state, detail, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
       .run(quoteId, q.side, q.token, q.symbol, 'sending', JSON.stringify({ ...q.view, slippagePct: q.slippage, decimals: q.decimals, quotedAt: q.created }), now, now);
     this.quotes.delete(quoteId);
+    const fee = TIPS[q.tipLevel] ?? { priority: this.priorityFeeSol, tip: this.tipFeeSol };
     const body = {
       ...q.params,
       slippage: q.slippage,
       min_output_amount: String(q.quote.min_output_amount),
       is_anti_mev: true,
-      priority_fee: String(this.priorityFeeSol),
-      tip_fee: String(this.tipFeeSol),
+      priority_fee: String(q.tipLevel ? fee.priority : this.priorityFeeSol),
+      tip_fee: String(q.tipLevel ? fee.tip : this.tipFeeSol),
     };
+    const exits = q.side === 'buy' ? conditionOrders(q.plan) : null;
+    if (exits) {
+      body.condition_orders = exits;
+      body.sell_ratio_type = 'buy_amount';
+    }
     try {
       const res = await this.g.swap(body);
       this.setState(quoteId, 'submitted', {}, { orderId: res.order_id, txHash: res.hash });

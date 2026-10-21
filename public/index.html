@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="jpa-token" content="__JPA_TOKEN__">
-  <title>K TRADES terminal</title>
+  <title>TRADES</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -13,10 +13,11 @@
 <body>
   <div class="shell">
     <header class="top">
-      <span class="wordmark">K TRADES</span>
+      <a class="wordmark" href="#/today" aria-label="TRADES home">TRADES</a>
       <nav class="tabs-nav" aria-label="Sections">
-        <a href="#/pulse" data-nav="pulse" data-explain="nav.pulse">Pulse</a>
-        <a href="#/wallets" data-nav="wallets" data-explain="nav.wallets">Explosive wallets</a>
+        <a href="#/today" data-nav="today" data-explain="nav.today">Today</a>
+        <a href="#/wallets" data-nav="wallets" data-explain="nav.wallets">Traders</a>
+        <a href="#/pulse" data-nav="pulse" data-explain="nav.pulse">Live coins</a>
         <a href="#/history" data-nav="history" data-explain="nav.history">History</a>
         <a href="#/portfolio" data-nav="portfolio" data-explain="nav.portfolio">Portfolio</a>
         <a href="#/desk" data-nav="desk" data-explain="nav.desk">Copy desk</a>
@@ -28,7 +29,7 @@
       </form>
       <div class="top-right">
         <span class="live" id="live" data-explain="shell.live"><span class="dot" id="liveDot"></span><span id="liveText">connecting</span></span>
-        <div class="balance" data-explain="shell.balance"><span class="money" id="balance">…</span><small>GMGN wallet</small></div>
+        <a class="balance" href="#/portfolio" data-explain="shell.balance"><span class="money" id="balance">…</span><small id="balanceNote">GMGN wallet</small></a>
         <button class="btn small" id="explainBtn" type="button" aria-pressed="false" data-explain="shell.explain" title="Explain mode (press ?)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.6 2.6 0 0 1 5 .8c0 1.8-2.5 2.2-2.5 3.8"/><path d="M12 17h.01"/></svg>
           Explain
@@ -39,7 +40,8 @@
 
     <main class="main">
       <div class="explain-banner" role="status">Explain mode is on: click anything and the analyst explains it. Nothing is pressed while it is on. Press ? or Esc to turn it off.</div>
-      <section class="view" id="view-pulse" aria-label="Pulse"></section>
+      <section class="view" id="view-today" aria-label="Today"></section>
+      <section class="view" id="view-pulse" aria-label="Live coins" hidden></section>
       <section class="view" id="view-coin" aria-label="Coin" hidden></section>
       <section class="view" id="view-wallets" aria-label="Explosive wallets" hidden></section>
       <section class="view" id="view-wallet" aria-label="Wallet" hidden></section>
@@ -50,9 +52,10 @@
 
     <aside class="rail" id="rail" aria-label="Desk analyst">
       <div class="rail-head">
-        <h2>Desk analyst</h2>
+        <h2>Your analyst</h2>
         <span class="ctx" id="railCtx"></span>
       </div>
+      <div class="approvals-rail" id="approvalsRail" hidden></div>
       <div class="feed" id="feed" aria-live="polite"></div>
       <div class="sugs" id="sugs" aria-label="Suggested questions"></div>
       <form class="ask" id="askForm" autocomplete="off">

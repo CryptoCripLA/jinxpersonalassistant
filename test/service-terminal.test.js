@@ -28,3 +28,32 @@ test('the service answers built-in questions first and sends open questions to G
   assert.equal(b.text, 'grok says hi');
   assert.equal(asked[0].ctx.view, 'coin');
 });
+
+test('the balance falls back to the last known value, marked stale with the reason, when GMGN pauses', async () => {
+  let fail = false;
+  const g = {
+    userInfo: async () => {
+      if (fail) throw new Error('GMGN paused requests until 23:56:41 UTC (rate limit).');
+      return { wallets: [{ chain: 'sol', address: 'ME', balances: [{ symbol: 'SOL', balance: '0.5' }] }] };
+    },
+    solUsd: async () => ({ usdPerSol: 100, source: 'GMGN gas-price', at: 1 }),
+  };
+  const svc = new Service({ g, db: openDb(':memory:'), exportDir: '/tmp', env: {}, log: () => {} });
+  const a1 = await svc.account();
+  assert.equal(a1.totalUsd, 50);
+  assert.equal(a1.stale, false);
+  fail = true;
+  const a2 = await svc.account();
+  assert.equal(a2.totalUsd, 50, 'last known balance, not "unavailable"');
+  assert.equal(a2.stale, true);
+  assert.match(a2.staleReason, /paused/);
+});
+
+test('preferences are editable and validated', () => {
+  const svc = new Service({ g: {}, db: openDb(':memory:'), exportDir: '/tmp', env: {}, log: () => {} });
+  const p = svc.setPrefs({ sizeUsd: 30, dailyTargetUsd: 75, minCoinsPerDay: 1, maxCoinsPerDay: 2, maxHoldMin: 90 });
+  assert.equal(p.sizeUsd, 30);
+  assert.equal(p.dailyTargetUsd, 75);
+  assert.equal(svc.user().prefs.maxHoldSec, 5400);
+  assert.throws(() => svc.setPrefs({ minCoinsPerDay: 5, maxCoinsPerDay: 2 }), /at most/);
+});

@@ -34,6 +34,14 @@ function scoreClass(s) {
   return s >= 70 ? 'score hot' : s >= 50 ? 'score good' : 'score';
 }
 
+// Until buying speed has been measured (two looks about a minute apart) the score is only the
+// health checks, so it is shown as unmeasured rather than as a low number.
+function scoreBadge(c) {
+  const m = c.momentum;
+  if (!c.rates) return h('span', { class: 'score unmeasured', title: 'Buying speed not measured yet', ...explainAttrs('coin.momentum', 'not measured yet') }, '–');
+  return h('span', { class: scoreClass(m.score), ...explainAttrs('coin.momentum', m.score) }, m.score);
+}
+
 function row(c, { sweep }) {
   const r = c.rates;
   const buys = r?.buysPerMin;
@@ -46,7 +54,7 @@ function row(c, { sweep }) {
       h('span', { class: 'r-name' }, c.name),
       h('span', { class: 'r-age', ...explainAttrs('row.age', age(c.ageSec)) }, age(c.ageSec))),
     h('div', { class: 'r-right' },
-      h('span', { class: scoreClass(m.score), ...explainAttrs('coin.momentum', m.score) }, m.score),
+      scoreBadge(c),
       h('span', { class: `stage ${m.stage}`, ...explainAttrs('coin.stage', m.stage) }, m.stage)),
     h('div', { class: 'r-stats' },
       h('span', explainAttrs('row.mcap', usdShort(c.marketCapUsd)), 'MC ', h('b', {}, usdShort(c.marketCapUsd))),
@@ -66,7 +74,10 @@ export function updatePulse(cols) {
     const top = box.scrollTop;
     countEls[c.key].textContent = list.length ? String(list.length) : '';
     if (!list.length) {
-      clear(box).append(h('p', { class: 'empty' }, cols.error ? `GMGN did not answer: ${cols.error}` : c.key === 'explosive' ? 'Nothing is igniting right now. Coins appear here when buying speeds up with real buyers.' : 'Waiting for the next update.'));
+      const msg = cols.error ? `GMGN did not answer: ${cols.error}`
+        : c.key === 'explosive' ? (cols.warmingUp ? 'Measuring live buying speed on every listed coin (about 10 seconds after the board opens)…' : 'Nothing is igniting right now. Coins appear here when buying speeds up with real buyers.')
+        : 'Waiting for the next update.';
+      clear(box).append(h('p', { class: 'empty' }, msg));
       continue;
     }
     clear(box).append(...list.map((x) => row(x, { sweep: c.key === 'explosive' && lastExplosive.size > 0 && !lastExplosive.has(x.address) })));
