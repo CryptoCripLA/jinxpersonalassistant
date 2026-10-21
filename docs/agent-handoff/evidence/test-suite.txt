@@ -6,1045 +6,1045 @@ TAP version 13
 # Subtest: trader types come from where and when they buy
 ok 1 - trader types come from where and when they buy
   ---
-  duration_ms: 1.154904
+  duration_ms: 1.046324
   type: 'test'
   ...
 # Subtest: a sniper picked by its launch timing is described by that timing, never as "0% in the first minute"
 ok 2 - a sniper picked by its launch timing is described by that timing, never as "0% in the first minute"
   ---
-  duration_ms: 0.272472
+  duration_ms: 0.235302
   type: 'test'
   ...
 # Subtest: style fit catches the contradictions instead of leaving them in a table
 ok 3 - style fit catches the contradictions instead of leaving them in a table
   ---
-  duration_ms: 13.168449
+  duration_ms: 12.202827
   type: 'test'
   ...
 # Subtest: deal-breakers are listed before small differences, so the first reason explains the skip
 ok 4 - deal-breakers are listed before small differences, so the first reason explains the skip
   ---
-  duration_ms: 0.290121
+  duration_ms: 0.27682
   type: 'test'
   ...
 # Subtest: behavior is described in plain words with the numbers behind it
 ok 5 - behavior is described in plain words with the numbers behind it
   ---
-  duration_ms: 0.418082
+  duration_ms: 0.381381
   type: 'test'
   ...
 # Subtest: the daily plan turns a dollar target into what each trade must do, with your real money
 ok 6 - the daily plan turns a dollar target into what each trade must do, with your real money
   ---
-  duration_ms: 0.510002
+  duration_ms: 0.568571
   type: 'test'
   ...
 # Subtest: walletDays replays a wallet day by day at your pace and counts the days it hit your target
 ok 7 - walletDays replays a wallet day by day at your pace and counts the days it hit your target
   ---
-  duration_ms: 0.833582
+  duration_ms: 0.870922
   type: 'test'
   ...
 # Subtest: every explainable element says what it does, why it matters for big moves, and what good traders do
 ok 8 - every explainable element says what it does, why it matters for big moves, and what good traders do
   ---
-  duration_ms: 1.139603
+  duration_ms: 1.226183
   type: 'test'
   ...
 # Subtest: "explain this" uses the element you clicked and its live value
 ok 9 - "explain this" uses the element you clicked and its live value
   ---
-  duration_ms: 0.982522
+  duration_ms: 0.956553
   type: 'test'
   ...
 # Subtest: the owner's example questions map to intents using what is on screen
 ok 10 - the owner's example questions map to intents using what is on screen
   ---
-  duration_ms: 4.093652
+  duration_ms: 3.864482
   type: 'test'
   ...
 # Subtest: why is this coin pumping: live flow, smart money and early-buyer behaviour, with what could go wrong
 ok 11 - why is this coin pumping: live flow, smart money and early-buyer behaviour, with what could go wrong
   ---
-  duration_ms: 1.200993
+  duration_ms: 1.174083
   type: 'test'
   ...
 # Subtest: who bought first lists the earliest wallets with entry market cap and whether they still hold
 ok 12 - who bought first lists the earliest wallets with entry market cap and whether they still hold
   ---
-  duration_ms: 0.384902
+  duration_ms: 0.332392
   type: 'test'
   ...
 # Subtest: could it reach 10x answers with the target market cap, the history base rate and an honest caveat
 ok 13 - could it reach 10x answers with the target market cap, the history base rate and an honest caveat
   ---
-  duration_ms: 0.28249
+  duration_ms: 0.27798
   type: 'test'
   ...
 # Subtest: the $25 scenario quotes dollars after fees and the break-even rise
 ok 14 - the $25 scenario quotes dollars after fees and the break-even rise
   ---
-  duration_ms: 14.394162
+  duration_ms: 12.688798
   type: 'test'
   ...
 # Subtest: explosive wallets and a wallet's last coins come from the measured board, with follower results
 ok 15 - explosive wallets and a wallet's last coins come from the measured board, with follower results
   ---
-  duration_ms: 1.435454
+  duration_ms: 0.986932
   type: 'test'
   ...
 # Subtest: "which wallet catches explosive moves" recommends only wallets the advisor would copy, and says why it passed on the rest
 ok 16 - "which wallet catches explosive moves" recommends only wallets the advisor would copy, and says why it passed on the rest
   ---
-  duration_ms: 0.920063
+  duration_ms: 0.750102
   type: 'test'
   ...
 # Subtest: most promising right now comes from the live Explosive-now column
 ok 17 - most promising right now comes from the live Explosive-now column
   ---
-  duration_ms: 0.593481
+  duration_ms: 0.429942
   type: 'test'
   ...
 # Subtest: the six owner questions are understood without an AI
 ok 18 - the six owner questions are understood without an AI
   ---
-  duration_ms: 5.743617
+  duration_ms: 4.331833
   type: 'test'
   ...
 # Subtest: "this wallet" uses the wallet you have open
 ok 19 - "this wallet" uses the wallet you have open
   ---
-  duration_ms: 0.247651
+  duration_ms: 0.174611
   type: 'test'
   ...
 # Subtest: glossary explains terms in plain words with no SOL talk
 ok 20 - glossary explains terms in plain words with no SOL talk
   ---
-  duration_ms: 0.481811
+  duration_ms: 0.401681
   type: 'test'
   ...
 # Subtest: answers carry USD evidence and point at an action
 ok 21 - answers carry USD evidence and point at an action
   ---
-  duration_ms: 16.624039
+  duration_ms: 13.144839
   type: 'test'
   ...
 # Subtest: Today briefing leads with what to do: best trader, best opportunity, and the target math
 ok 22 - Today briefing leads with what to do: best trader, best opportunity, and the target math
   ---
-  duration_ms: 14.637844
+  duration_ms: 12.777458
   type: 'test'
   ...
 # Subtest: the Today briefing never quotes a copy replay it cannot trust as a result
 ok 23 - the Today briefing never quotes a copy replay it cannot trust as a result
   ---
-  duration_ms: 0.351671
+  duration_ms: 0.453981
   type: 'test'
   ...
 # Subtest: a coin briefing gives a verdict, the evidence, and realistic versus theoretical dollars
 ok 24 - a coin briefing gives a verdict, the evidence, and realistic versus theoretical dollars
   ---
-  duration_ms: 0.571362
+  duration_ms: 0.593511
   type: 'test'
   ...
 # Subtest: a wallet briefing says copy, watch or skip, and why
 ok 25 - a wallet briefing says copy, watch or skip, and why
   ---
-  duration_ms: 0.429302
+  duration_ms: 0.391361
   type: 'test'
   ...
 # Subtest: an empty copy desk is explained and resolved with a one-click suggestion
 ok 26 - an empty copy desk is explained and resolved with a one-click suggestion
   ---
-  duration_ms: 0.22006
+  duration_ms: 0.242931
   type: 'test'
   ...
 # Subtest: scenario shows dollars in and out at each multiple after every fee
 ok 27 - scenario shows dollars in and out at each multiple after every fee
   ---
-  duration_ms: 13.086139
+  duration_ms: 13.581351
   type: 'test'
   ...
 # Subtest: ratesFromInfo turns GMGN 1m/5m windows into live rates when the tape has none
 ok 28 - ratesFromInfo turns GMGN 1m/5m windows into live rates when the tape has none
   ---
-  duration_ms: 0.2163
+  duration_ms: 0.184831
   type: 'test'
   ...
 # Subtest: coinDetail assembles live numbers, exact early buyers from pump.fun and the $25 scenario
 ok 29 - coinDetail assembles live numbers, exact early buyers from pump.fun and the $25 scenario
   ---
-  duration_ms: 2.999899
+  duration_ms: 3.43076
   type: 'test'
   ...
 # Subtest: coinDetail falls back to GMGN top traders when pump.fun has no full history
 ok 30 - coinDetail falls back to GMGN top traders when pump.fun has no full history
   ---
-  duration_ms: 1.251194
+  duration_ms: 1.214233
   type: 'test'
   ...
 # Subtest: safety reads GMGN security as it really arrives and takes rug risk from the live list
 ok 31 - safety reads GMGN security as it really arrives and takes rug risk from the live list
   ---
-  duration_ms: 0.890522
+  duration_ms: 0.876533
   type: 'test'
   ...
 # Subtest: first look at a wallet only records history; old trades are never copied
 ok 32 - first look at a wallet only records history; old trades are never copied
   ---
-  duration_ms: 2.417267
+  duration_ms: 2.436488
   type: 'test'
   ...
 # Subtest: OFF records what it would have copied but never trades
 ok 33 - OFF records what it would have copied but never trades
   ---
-  duration_ms: 1.359005
+  duration_ms: 1.309573
   type: 'test'
   ...
 # Subtest: CONFIRM waits for your tap, then quotes and sends with a minimum output
 ok 34 - CONFIRM waits for your tap, then quotes and sends with a minimum output
   ---
-  duration_ms: 2.783189
+  duration_ms: 2.948239
   type: 'test'
   ...
 # Subtest: the same wallet trade is only ever turned into one order
 ok 35 - the same wallet trade is only ever turned into one order
   ---
-  duration_ms: 1.788995
+  duration_ms: 1.730245
   type: 'test'
   ...
 # Subtest: AUTO without the operator flag still asks for approval
 ok 36 - AUTO without the operator flag still asks for approval
   ---
-  duration_ms: 2.396757
+  duration_ms: 0.986903
   type: 'test'
   ...
 # Subtest: AUTO with the operator flag sends inside the limits
 ok 37 - AUTO with the operator flag sends inside the limits
   ---
-  duration_ms: 12.599318
+  duration_ms: 12.764639
   type: 'test'
   ...
 # Subtest: filters from the settings sheet are applied
 ok 38 - filters from the settings sheet are applied
   ---
-  duration_ms: 1.280314
+  duration_ms: 1.351284
   type: 'test'
   ...
 # Subtest: an unclear send is never retried; it waits for you to check
 ok 39 - an unclear send is never retried; it waits for you to check
   ---
-  duration_ms: 1.426054
+  duration_ms: 1.429244
   type: 'test'
   ...
 # Subtest: three failed orders in a row switch the desk OFF
 ok 40 - three failed orders in a row switch the desk OFF
   ---
-  duration_ms: 3.573671
+  duration_ms: 3.860061
   type: 'test'
   ...
 # Subtest: when the wallet sells, your copy sells the same share automatically
 ok 41 - when the wallet sells, your copy sells the same share automatically
   ---
-  duration_ms: 2.505168
+  duration_ms: 2.625299
   type: 'test'
   ...
 # Subtest: take-profit / stop-loss from the settings sheet ride on the buy as GMGN condition orders
 ok 42 - take-profit / stop-loss from the settings sheet ride on the buy as GMGN condition orders
   ---
-  duration_ms: 1.953966
+  duration_ms: 2.251406
   type: 'test'
   ...
 # Subtest: if GMGN confirmed a buy without a coin count, the copy still sells (by percentage)
 ok 43 - if GMGN confirmed a buy without a coin count, the copy still sells (by percentage)
   ---
-  duration_ms: 2.033058
+  duration_ms: 2.386808
   type: 'test'
   ...
 # Subtest: two approvals racing for the same trade send only one order
 ok 44 - two approvals racing for the same trade send only one order
   ---
-  duration_ms: 1.237953
+  duration_ms: 2.921328
   type: 'test'
   ...
 # Subtest: a wallet on "watch first" is only observed, even when the desk is Automatic
 ok 45 - a wallet on "watch first" is only observed, even when the desk is Automatic
   ---
-  duration_ms: 0.842642
+  duration_ms: 0.812802
   type: 'test'
   ...
 # Subtest: copied buys carry your hard stop as a GMGN condition order and still follow the trader's sells
 ok 46 - copied buys carry your hard stop as a GMGN condition order and still follow the trader's sells
   ---
-  duration_ms: 0.866352
+  duration_ms: 0.880483
   type: 'test'
   ...
 # Subtest: top earners on a coin become candidates, but insiders and pools do not
 ok 47 - top earners on a coin become candidates, but insiders and pools do not
   ---
-  duration_ms: 1.453325
+  duration_ms: 1.523574
   type: 'test'
   ...
 # Subtest: smart money and KOL feeds give candidates with their GMGN tags
 ok 48 - smart money and KOL feeds give candidates with their GMGN tags
   ---
-  duration_ms: 0.206471
+  duration_ms: 0.19781
   type: 'test'
   ...
 # Subtest: prefilter keeps profitable, selective wallets and says why it dropped the rest
 ok 49 - prefilter keeps profitable, selective wallets and says why it dropped the rest
   ---
-  duration_ms: 0.346041
+  duration_ms: 0.31481
   type: 'test'
   ...
 # Subtest: early buyers come out in true buy order with entry market cap and what they did since
 ok 50 - early buyers come out in true buy order with entry market cap and what they did since
   ---
-  duration_ms: 1.422204
+  duration_ms: 1.279004
   type: 'test'
   ...
 # Subtest: top traders from GMGN fill in when the full trade list is unavailable
 ok 51 - top traders from GMGN fill in when the full trade list is unavailable
   ---
-  duration_ms: 0.527502
+  duration_ms: 0.491762
   type: 'test'
   ...
 # Subtest: summary answers "are the early profitable wallets still holding?" in plain numbers
 ok 52 - summary answers "are the early profitable wallets still holding?" in plain numbers
   ---
-  duration_ms: 1.132253
+  duration_ms: 1.431335
   type: 'test'
   ...
 # Subtest: the filters that matter, each as a plain pass or fail
 ok 53 - the filters that matter, each as a plain pass or fail
   ---
-  duration_ms: 2.571508
+  duration_ms: 3.010221
   type: 'test'
   ...
 # Subtest: exit habits: takes profit versus riding losers to zero
 ok 54 - exit habits: takes profit versus riding losers to zero
   ---
-  duration_ms: 0.279862
+  duration_ms: 0.299961
   type: 'test'
   ...
 # Subtest: peakAfter finds the highest price inside the horizon only
 ok 55 - peakAfter finds the highest price inside the horizon only
   ---
-  duration_ms: 1.250593
+  duration_ms: 0.842822
   type: 'test'
   ...
 # Subtest: tradeOutcome keeps the token peak apart from what the wallet and a follower captured
 ok 56 - tradeOutcome keeps the token peak apart from what the wallet and a follower captured
   ---
-  duration_ms: 0.564572
+  duration_ms: 0.353571
   type: 'test'
   ...
 # Subtest: tradeOutcome reports unknown peaks and open trades as unavailable, not zero
 ok 57 - tradeOutcome reports unknown peaks and open trades as unavailable, not zero
   ---
-  duration_ms: 0.216211
+  duration_ms: 0.18522
   type: 'test'
   ...
 # Subtest: explosiveProfile counts how often big moves were found, captured by the wallet, and captured by a follower
 ok 58 - explosiveProfile counts how often big moves were found, captured by the wallet, and captured by a follower
   ---
-  duration_ms: 1.415084
+  duration_ms: 1.159254
   type: 'test'
   ...
 # Subtest: edge kept is unavailable when the wallet itself barely made money
 ok 59 - edge kept is unavailable when the wallet itself barely made money
   ---
-  duration_ms: 0.23659
+  duration_ms: 0.169131
   type: 'test'
   ...
 # Subtest: rankExplosive orders by realizable follower dollars per active day, capped at your 3 coins a day
 ok 60 - rankExplosive orders by realizable follower dollars per active day, capped at your 3 coins a day
   ---
-  duration_ms: 0.345821
+  duration_ms: 0.276791
   type: 'test'
   ...
 # Subtest: a replay where copiers beat a fast flipper is not trusted, and never ranks as an explosive wallet
 ok 61 - a replay where copiers beat a fast flipper is not trusted, and never ranks as an explosive wallet
   ---
-  duration_ms: 0.250131
+  duration_ms: 0.193941
   type: 'test'
   ...
 # Subtest: walletFlags ports the bot and distributor checks (Kelows/million, MIT)
 ok 62 - walletFlags ports the bot and distributor checks (Kelows/million, MIT)
   ---
-  duration_ms: 0.377131
+  duration_ms: 0.32369
   type: 'test'
   ...
 # Subtest: peakAfter ignores a lone high wick and uses the best candle body
 ok 63 - peakAfter ignores a lone high wick and uses the best candle body
   ---
-  duration_ms: 0.344851
+  duration_ms: 0.27411
   type: 'test'
   ...
 # Subtest: coin ages read naturally at every scale
 ok 64 - coin ages read naturally at every scale
   ---
-  duration_ms: 0.731691
+  duration_ms: 0.602021
   type: 'test'
   ...
 # Subtest: caches responses by route and arguments
 ok 65 - caches responses by route and arguments
   ---
-  duration_ms: 2.597097
+  duration_ms: 2.938338
   type: 'test'
   ...
 # Subtest: a route the plan cannot afford fails fast with a plain explanation
 ok 66 - a route the plan cannot afford fails fast with a plain explanation
   ---
-  duration_ms: 1.040634
+  duration_ms: 1.085503
   type: 'test'
   ...
 # Subtest: 1-second candles fall back to 30-second candles when the key is not on Pro
 ok 67 - 1-second candles fall back to 30-second candles when the key is not on Pro
   ---
-  duration_ms: 1.189404
+  duration_ms: 1.283653
   type: 'test'
   ...
 # Subtest: a server rate-limit ban pauses all calls and is reported, not retried in a loop
 ok 68 - a server rate-limit ban pauses all calls and is reported, not retried in a loop
   ---
-  duration_ms: 1.080864
+  duration_ms: 1.205194
   type: 'test'
   ...
 # Subtest: SOL price comes from GMGN gas-price with its source and time
 ok 69 - SOL price comes from GMGN gas-price with its source and time
   ---
-  duration_ms: 0.833162
+  duration_ms: 0.904862
   type: 'test'
   ...
 # Subtest: klineRange pages through GMGN 100-candle windows and returns one ordered series
 ok 70 - klineRange pages through GMGN 100-candle windows and returns one ordered series
   ---
-  duration_ms: 1.645856
+  duration_ms: 1.775326
   type: 'test'
   ...
 # Subtest: trending reads the rank list whether GMGN wraps it in data or not
 ok 71 - trending reads the rank list whether GMGN wraps it in data or not
   ---
-  duration_ms: 2.296726
+  duration_ms: 1.926635
   type: 'test'
   ...
 # Subtest: one budget per key: research may only fill part of it, clicks and trades can use all of it
 ok 72 - one budget per key: research may only fill part of it, clicks and trades can use all of it
   ---
-  duration_ms: 0.905482
+  duration_ms: 0.937142
   type: 'test'
   ...
 # Subtest: a GMGN pause pauses every lane on the shared budget
 ok 73 - a GMGN pause pauses every lane on the shared budget
   ---
-  duration_ms: 1.013812
+  duration_ms: 1.043403
   type: 'test'
   ...
 # Subtest: Grok gets read-only tools only: nothing can buy, sell, approve or change the desk
 ok 74 - Grok gets read-only tools only: nothing can buy, sell, approve or change the desk
   ---
-  duration_ms: 0.920343
+  duration_ms: 0.959573
   type: 'test'
   ...
 # Subtest: runs the tool loop with what is on screen and returns the final answer
 ok 75 - runs the tool loop with what is on screen and returns the final answer
   ---
-  duration_ms: 1.446584
+  duration_ms: 1.332684
   type: 'test'
   ...
 # Subtest: X chatter uses Grok live X search, returns the summary with its links, and is cached
 ok 76 - X chatter uses Grok live X search, returns the summary with its links, and is cached
   ---
-  duration_ms: 0.952872
+  duration_ms: 0.998603
   type: 'test'
   ...
 # Subtest: the explosive-wallet tool never hands Grok a copy result the replay cannot vouch for
 ok 77 - the explosive-wallet tool never hands Grok a copy result the replay cannot vouch for
   ---
-  duration_ms: 0.252281
+  duration_ms: 0.321311
   type: 'test'
   ...
 # Subtest: the key comes from the app's private secrets file or the environment
 ok 78 - the key comes from the app's private secrets file or the environment
   ---
-  duration_ms: 0.18446
+  duration_ms: 0.214061
   type: 'test'
   ...
 # Subtest: findExplosiveMove finds the base, the breakout and the peak of the biggest run
 ok 79 - findExplosiveMove finds the base, the breakout and the peak of the biggest run
   ---
-  duration_ms: 0.928493
+  duration_ms: 1.430525
   type: 'test'
   ...
 # Subtest: followTrailing rides the move and sells after a 30% drop from the high
 ok 80 - followTrailing rides the move and sells after a 30% drop from the high
   ---
-  duration_ms: 0.275111
+  duration_ms: 0.395631
   type: 'test'
   ...
 # Subtest: signalTimeline marks which signals came before the breakout and which were too late
 ok 81 - signalTimeline marks which signals came before the breakout and which were too late
   ---
-  duration_ms: 1.540865
+  duration_ms: 1.868266
   type: 'test'
   ...
 # Subtest: studySummary tells how often each signal type showed up early enough to profit
 ok 82 - studySummary tells how often each signal type showed up early enough to profit
   ---
-  duration_ms: 0.323691
+  duration_ms: 0.409821
   type: 'test'
   ...
 # Subtest: a single dust-trade wick is not a base: moves are measured on candle bodies
 ok 83 - a single dust-trade wick is not a base: moves are measured on candle bodies
   ---
-  duration_ms: 0.28854
+  duration_ms: 0.394421
   type: 'test'
   ...
 # Subtest: a run inside one candle, or from below the lowest possible launch price, is not studied
 ok 84 - a run inside one candle, or from below the lowest possible launch price, is not studied
   ---
-  duration_ms: 0.15958
+  duration_ms: 0.229871
   type: 'test'
   ...
 # Subtest: analyzeWallet measures the coin peak, the wallet capture and a $25 follower replay per trade
 ok 85 - analyzeWallet measures the coin peak, the wallet capture and a $25 follower replay per trade
   ---
-  duration_ms: 4.145482
+  duration_ms: 3.925572
   type: 'test'
   ...
 # Subtest: runExplosiveAnalysis stores each wallet and loadExplosive ranks them for the board
 ok 86 - runExplosiveAnalysis stores each wallet and loadExplosive ranks them for the board
   ---
-  duration_ms: 1.612105
+  duration_ms: 1.559585
   type: 'test'
   ...
 # Subtest: studyToken turns a real 7x+ run into a dated example with its early signals and early wallets
 ok 87 - studyToken turns a real 7x+ run into a dated example with its early signals and early wallets
   ---
-  duration_ms: 7.359602
+  duration_ms: 8.461785
   type: 'test'
   ...
 # Subtest: studyToken returns null when the coin never ran 7x
 ok 88 - studyToken returns null when the coin never ran 7x
   ---
-  duration_ms: 0.20914
+  duration_ms: 0.22882
   type: 'test'
   ...
 # Subtest: runStudy keeps the examples and turns early winners into wallet candidates
 ok 89 - runStudy keeps the examples and turns early winners into wallet candidates
   ---
-  duration_ms: 2.257837
+  duration_ms: 3.03449
   type: 'test'
   ...
 # Subtest: runExplosiveAnalysis skips wallets measured recently so an interrupted run resumes
 ok 90 - runExplosiveAnalysis skips wallets measured recently so an interrupted run resumes
   ---
-  duration_ms: 0.645552
+  duration_ms: 0.912383
   type: 'test'
   ...
 # Subtest: a wallet measured with an older method is measured again even if recent
 ok 91 - a wallet measured with an older method is measured again even if recent
   ---
-  duration_ms: 1.250704
+  duration_ms: 1.635535
   type: 'test'
   ...
 # Subtest: studyToken reads 1-minute candles for the first hours and labels launch spikes apart from later breakouts
 ok 92 - studyToken reads 1-minute candles for the first hours and labels launch spikes apart from later breakouts
   ---
-  duration_ms: 0.980183
+  duration_ms: 1.455365
   type: 'test'
   ...
 # Subtest: a launch spike is kept and labelled, with the part a follower could still have caught
 ok 93 - a launch spike is kept and labelled, with the part a follower could still have caught
   ---
-  duration_ms: 0.722372
+  duration_ms: 1.182784
   type: 'test'
   ...
 # Subtest: runStudy counts what it studied and why coins were left out
 ok 94 - runStudy counts what it studied and why coins were left out
   ---
-  duration_ms: 2.372438
+  duration_ms: 3.911791
   type: 'test'
   ...
 # Subtest: export matches JINX's smart_wallets.json reader: a wallets array of {wallet}
 ok 95 - export matches JINX's smart_wallets.json reader: a wallets array of {wallet}
   ---
-  duration_ms: 1.963216
+  duration_ms: 1.580985
   type: 'test'
   ...
 # Subtest: export never exceeds the 30 wallets JINX subscribes to
 ok 96 - export never exceeds the 30 wallets JINX subscribes to
   ---
-  duration_ms: 0.462622
+  duration_ms: 0.432521
   type: 'test'
   ...
 # Subtest: plan buckets match GMGN published rate/capacity
 ok 97 - plan buckets match GMGN published rate/capacity
   ---
-  duration_ms: 1.044233
+  duration_ms: 1.167354
   type: 'test'
   ...
 # Subtest: route weights match GMGN skill docs for the routes this app uses
 ok 98 - route weights match GMGN skill docs for the routes this app uses
   ---
-  duration_ms: 0.17275
+  duration_ms: 0.24537
   type: 'test'
   ...
 # Subtest: a route heavier than the plan capacity fails fast instead of calling GMGN
 ok 99 - a route heavier than the plan capacity fails fast instead of calling GMGN
   ---
-  duration_ms: 0.173911
+  duration_ms: 0.233822
   type: 'test'
   ...
 # Subtest: bucket drains at plan rate: free plan allows one wallet_activity burst then waits
 ok 100 - bucket drains at plan rate: free plan allows one wallet_activity burst then waits
   ---
-  duration_ms: 0.16408
+  duration_ms: 0.259332
   type: 'test'
   ...
 # Subtest: server ban pauses every call until the reset time, then the normal drain
 ok 101 - server ban pauses every call until the reset time, then the normal drain
   ---
-  duration_ms: 0.256282
+  duration_ms: 0.352572
   type: 'test'
   ...
 # Subtest: after a ban, waiting callers leave one at a time at the plan rate instead of all at once
 ok 102 - after a ban, waiting callers leave one at a time at the plan rate instead of all at once
   ---
-  duration_ms: 0.18424
+  duration_ms: 0.396431
   type: 'test'
   ...
 # Subtest: the AI gets read-only tools only: nothing can buy, sell or change the copy desk
 ok 103 - the AI gets read-only tools only: nothing can buy, sell or change the copy desk
   ---
-  duration_ms: 0.897683
+  duration_ms: 0.884453
   type: 'test'
   ...
 # Subtest: runs the tool loop through the service and returns the final text
 ok 104 - runs the tool loop through the service and returns the final text
   ---
-  duration_ms: 1.220363
+  duration_ms: 1.073414
   type: 'test'
   ...
 # Subtest: a refusal becomes a polite plain answer, not a crash
 ok 105 - a refusal becomes a polite plain answer, not a crash
   ---
-  duration_ms: 0.216941
+  duration_ms: 0.201011
   type: 'test'
   ...
 # Subtest: TokenTape turns cumulative counters into per-minute rates
 ok 106 - TokenTape turns cumulative counters into per-minute rates
   ---
-  duration_ms: 0.888823
+  duration_ms: 0.893252
   type: 'test'
   ...
 # Subtest: TokenTape measures acceleration: last minute against the five before it
 ok 107 - TokenTape measures acceleration: last minute against the five before it
   ---
-  duration_ms: 1.112873
+  duration_ms: 1.256454
   type: 'test'
   ...
 # Subtest: momentumScore rewards ignition plus smart money and explains every point
 ok 108 - momentumScore rewards ignition plus smart money and explains every point
   ---
-  duration_ms: 0.661952
+  duration_ms: 0.694952
   type: 'test'
   ...
 # Subtest: momentumScore disqualifies rugs and fake volume outright
 ok 109 - momentumScore disqualifies rugs and fake volume outright
   ---
-  duration_ms: 0.279871
+  duration_ms: 0.276581
   type: 'test'
   ...
 # Subtest: momentumScore warns when buyers turn into sellers and the coin is fading
 ok 110 - momentumScore warns when buyers turn into sellers and the coin is fading
   ---
-  duration_ms: 0.205301
+  duration_ms: 0.18418
   type: 'test'
   ...
 # Subtest: missing live rates are reported as unknown, never scored as zero activity
 ok 111 - missing live rates are reported as unknown, never scored as zero activity
   ---
-  duration_ms: 0.159491
+  duration_ms: 0.128531
   type: 'test'
   ...
 # Subtest: usd formats like the owner reads money
 ok 112 - usd formats like the owner reads money
   ---
-  duration_ms: 16.62226
+  duration_ms: 16.697201
   type: 'test'
   ...
 # Subtest: sol and lamport conversions use the supplied rate, never a constant
 ok 113 - sol and lamport conversions use the supplied rate, never a constant
   ---
-  duration_ms: 0.302332
+  duration_ms: 0.336781
   type: 'test'
   ...
 # Subtest: pct renders ratios as percent
 ok 114 - pct renders ratios as percent
   ---
-  duration_ms: 1.514825
+  duration_ms: 1.472484
   type: 'test'
   ...
 # Subtest: GMGN fee model: 1% GMGN fee each side, launchpad or pool fee, network fee per transaction
 ok 115 - GMGN fee model: 1% GMGN fee each side, launchpad or pool fee, network fee per transaction
   ---
-  duration_ms: 0.328901
+  duration_ms: 0.341911
   type: 'test'
   ...
 # Subtest: round trip cost shows how fees crush tiny trades
 ok 116 - round trip cost shows how fees crush tiny trades
   ---
-  duration_ms: 0.248601
+  duration_ms: 0.26902
   type: 'test'
   ...
 # Subtest: fee model refuses to invent a network fee when the SOL price is unknown
 ok 117 - fee model refuses to invent a network fee when the SOL price is unknown
   ---
-  duration_ms: 0.15682
+  duration_ms: 0.165379
   type: 'test'
   ...
 # Subtest: a coin that passes every item on GMGN's checklist scores high and says why
 ok 118 - a coin that passes every item on GMGN's checklist scores high and says why
   ---
-  duration_ms: 14.180073
+  duration_ms: 13.671791
   type: 'test'
   ...
 # Subtest: GMGN quick-disqualify rules remove a coin outright
 ok 119 - GMGN quick-disqualify rules remove a coin outright
   ---
-  duration_ms: 0.332812
+  duration_ms: 0.328672
   type: 'test'
   ...
 # Subtest: rate fields arrive as fractions and are compared as fractions
 ok 120 - rate fields arrive as fractions and are compared as fractions
   ---
-  duration_ms: 0.592002
+  duration_ms: 0.675093
   type: 'test'
   ...
 # Subtest: lifecycle stage follows GMGN guide wording
 ok 121 - lifecycle stage follows GMGN guide wording
   ---
-  duration_ms: 0.150709
+  duration_ms: 0.138331
   type: 'test'
   ...
 # Subtest: your own suggested wallets buying the coin is shown as a personal signal
 ok 122 - your own suggested wallets buying the coin is shown as a personal signal
   ---
-  duration_ms: 0.357681
+  duration_ms: 0.375861
   type: 'test'
   ...
 # Subtest: without a measured pool fee the break-even is unavailable, not zero
 ok 123 - without a measured pool fee the break-even is unavailable, not zero
   ---
-  duration_ms: 0.256942
+  duration_ms: 0.299511
   type: 'test'
   ...
 # Subtest: profile measures the behaviour the owner asked for
 ok 124 - profile measures the behaviour the owner asked for
   ---
-  duration_ms: 17.611273
+  duration_ms: 14.449363
   type: 'test'
   ...
 # Subtest: a 300-trades-a-day bot does not fit and says why in plain words
 ok 125 - a 300-trades-a-day bot does not fit and says why in plain words
   ---
-  duration_ms: 5.157465
+  duration_ms: 3.841942
   type: 'test'
   ...
 # Subtest: quick keep estimate charges every follow-sell its own network fee
 ok 126 - quick keep estimate charges every follow-sell its own network fee
   ---
-  duration_ms: 0.499721
+  duration_ms: 0.341062
   type: 'test'
   ...
 # Subtest: rankings are separate per entry stage and ordered by what you would keep
 ok 127 - rankings are separate per entry stage and ordered by what you would keep
   ---
-  duration_ms: 1.549304
+  duration_ms: 1.055363
   type: 'test'
   ...
 # Subtest: pulse builds the three launch columns and an Explosive-now column ranked by live momentum
 ok 128 - pulse builds the three launch columns and an Explosive-now column ranked by live momentum
   ---
-  duration_ms: 5.029164
+  duration_ms: 3.465261
   type: 'test'
   ...
 # Subtest: pulse drops rugs from every column and keeps the reason
 ok 129 - pulse drops rugs from every column and keeps the reason
   ---
-  duration_ms: 0.508241
+  duration_ms: 0.409321
   type: 'test'
   ...
 # Subtest: a failed GMGN poll keeps the last good columns and reports the problem
 ok 130 - a failed GMGN poll keeps the last good columns and reports the problem
   ---
-  duration_ms: 0.46187
+  duration_ms: 0.45639
   type: 'test'
   ...
 # Subtest: normalizeTrade keeps wallet, side, dollars and seconds
 ok 131 - normalizeTrade keeps wallet, side, dollars and seconds
   ---
-  duration_ms: 0.886343
+  duration_ms: 0.713132
   type: 'test'
   ...
 # Subtest: trades pages to the very first trade and returns them oldest first
 ok 132 - trades pages to the very first trade and returns them oldest first
   ---
-  duration_ms: 1.429045
+  duration_ms: 1.372614
   type: 'test'
   ...
 # Subtest: a Cloudflare 429 stops paging and marks the history partial instead of failing
 ok 133 - a Cloudflare 429 stops paging and marks the history partial instead of failing
   ---
-  duration_ms: 1.321974
+  duration_ms: 1.252703
   type: 'test'
   ...
 # Subtest: maxPages bounds the cost and says the history is partial
 ok 134 - maxPages bounds the cost and says the history is partial
   ---
-  duration_ms: 0.24676
+  duration_ms: 0.222081
   type: 'test'
   ...
 # Subtest: reachedFromBase counts past runners that traded near this market cap and went N times higher after
 ok 135 - reachedFromBase counts past runners that traded near this market cap and went N times higher after
   ---
-  duration_ms: 1.244935
+  duration_ms: 0.808973
   type: 'test'
   ...
 # Subtest: the service answers built-in questions first and sends open questions to Grok
 ok 136 - the service answers built-in questions first and sends open questions to Grok
   ---
-  duration_ms: 24.794284
+  duration_ms: 18.056244
   type: 'test'
   ...
 # Subtest: the balance falls back to the last known value, marked stale with the reason, when GMGN pauses
 ok 137 - the balance falls back to the last known value, marked stale with the reason, when GMGN pauses
   ---
-  duration_ms: 13.37782
+  duration_ms: 12.840978
   type: 'test'
   ...
 # Subtest: preferences are editable and validated
 ok 138 - preferences are editable and validated
   ---
-  duration_ms: 2.423718
+  duration_ms: 2.239537
   type: 'test'
   ...
 # Subtest: max concurrent coins held is measured from the timeline
 ok 139 - max concurrent coins held is measured from the timeline
   ---
-  duration_ms: 1.665046
+  duration_ms: 1.974816
   type: 'test'
   ...
 # Subtest: settings use GMGN names, USD amounts with SOL for the GMGN screen, and kid-simple words
 ok 140 - settings use GMGN names, USD amounts with SOL for the GMGN screen, and kid-simple words
   ---
-  duration_ms: 15.035154
+  duration_ms: 12.998049
   type: 'test'
   ...
 # Subtest: a tiny account gets a clear warning when fees would eat the trade
 ok 141 - a tiny account gets a clear warning when fees would eat the trade
   ---
-  duration_ms: 0.890713
+  duration_ms: 0.700993
   type: 'test'
   ...
 # Subtest: a wallet that leaves bags open gets take-profit / stop-loss instead of follow-selling
 ok 142 - a wallet that leaves bags open gets take-profit / stop-loss instead of follow-selling
   ---
-  duration_ms: 0.787033
+  duration_ms: 0.537922
   type: 'test'
   ...
 # Subtest: priceAt interpolates inside a candle and reports the candle bounds
 ok 143 - priceAt interpolates inside a candle and reports the candle bounds
   ---
-  duration_ms: 0.855411
+  duration_ms: 0.800403
   type: 'test'
   ...
 # Subtest: copy delay moves your prices: you buy later and sell later than the wallet
 ok 144 - copy delay moves your prices: you buy later and sell later than the wallet
   ---
-  duration_ms: 2.011426
+  duration_ms: 1.683055
   type: 'test'
   ...
 # Subtest: fees are charged on every transaction you would send
 ok 145 - fees are charged on every transaction you would send
   ---
-  duration_ms: 0.503472
+  duration_ms: 0.424002
   type: 'test'
   ...
 # Subtest: trades you could not afford are skipped and counted, not silently added
 ok 146 - trades you could not afford are skipped and counted, not silently added
   ---
-  duration_ms: 0.494053
+  duration_ms: 0.485511
   type: 'test'
   ...
 # Subtest: missing price data is reported as unavailable, never as a zero result
 ok 147 - missing price data is reported as unavailable, never as a zero result
   ---
-  duration_ms: 0.474952
+  duration_ms: 0.333871
   type: 'test'
   ...
 # Subtest: normalizeEvent reads PumpPortal create, trade and migrate messages
 ok 148 - normalizeEvent reads PumpPortal create, trade and migrate messages
   ---
-  duration_ms: 1.240464
+  duration_ms: 1.120844
   type: 'test'
   ...
 # Subtest: the stream subscribes to launches and graduations and follows chosen wallets and coins
 ok 149 - the stream subscribes to launches and graduations and follows chosen wallets and coins
   ---
-  duration_ms: 6.411531
+  duration_ms: 5.289976
   type: 'test'
   ...
 # Subtest: a dropped connection reconnects while the stream is wanted, and stays down after stop
 ok 150 - a dropped connection reconnects while the stream is wanted, and stays down after stop
   ---
-  duration_ms: 16.948131
+  duration_ms: 16.81903
   type: 'test'
   ...
 # Subtest: suggests 3-5 wallets by what you would have kept, best first, in dollars
 ok 151 - suggests 3-5 wallets by what you would have kept, best first, in dollars
   ---
-  duration_ms: 17.294923
+  duration_ms: 14.868714
   type: 'test'
   ...
 # Subtest: never suggests a wallet that loses you money, bots, or wallets with too little history
 ok 152 - never suggests a wallet that loses you money, bots, or wallets with too little history
   ---
-  duration_ms: 0.765393
+  duration_ms: 0.697723
   type: 'test'
   ...
 # Subtest: close matches are labelled when they break one of your style rules
 ok 153 - close matches are labelled when they break one of your style rules
   ---
-  duration_ms: 0.727872
+  duration_ms: 0.652563
   type: 'test'
   ...
 # Subtest: a wallet that stopped trading over a week ago is not suggested
 ok 154 - a wallet that stopped trading over a week ago is not suggested
   ---
-  duration_ms: 0.503342
+  duration_ms: 0.529541
   type: 'test'
   ...
 # Subtest: recommendations put wallets that fit your style first and explain why in one sentence
 ok 155 - recommendations put wallets that fit your style first and explain why in one sentence
   ---
-  duration_ms: 18.923597
+  duration_ms: 18.778087
   type: 'test'
   ...
 # Subtest: high earners that do not fit are named with the reason, not silently dropped
 ok 156 - high earners that do not fit are named with the reason, not silently dropped
   ---
-  duration_ms: 1.348384
+  duration_ms: 0.885562
   type: 'test'
   ...
 # Subtest: a copy replay that cannot be trusted is never quoted as a result or ranked as a high earner
 ok 157 - a copy replay that cannot be trusted is never quoted as a result or ranked as a high earner
   ---
-  duration_ms: 1.132714
+  duration_ms: 1.043173
   type: 'test'
   ...
 # Subtest: opportunities separate the coin's theoretical multiple from what a follower realistically captured
 ok 158 - opportunities separate the coin's theoretical multiple from what a follower realistically captured
   ---
-  duration_ms: 1.376554
+  duration_ms: 1.109653
   type: 'test'
   ...
 # Subtest: a trader that rides losers to zero is marked down, and every pick shows its exit habits
 ok 159 - a trader that rides losers to zero is marked down, and every pick shows its exit habits
   ---
-  duration_ms: 0.541001
+  duration_ms: 0.384081
   type: 'test'
   ...
 # Subtest: coins failing the hard filters never become opportunities; fresh migrations are their own kind
 ok 160 - coins failing the hard filters never become opportunities; fresh migrations are their own kind
   ---
-  duration_ms: 2.057336
+  duration_ms: 1.605255
   type: 'test'
   ...
 # Subtest: a buy quote is in dollars: what you pay, what you get, and the worst fill you accept
 ok 161 - a buy quote is in dollars: what you pay, what you get, and the worst fill you accept
   ---
-  duration_ms: 2.509718
+  duration_ms: 2.466138
   type: 'test'
   ...
 # Subtest: confirming sends exactly the quoted minimum, records the order first, and reconciles the fill
 ok 162 - confirming sends exactly the quoted minimum, records the order first, and reconciles the fill
   ---
-  duration_ms: 2.086817
+  duration_ms: 1.910797
   type: 'test'
   ...
 # Subtest: a quote older than 30 seconds cannot be confirmed: the price may have run
 ok 163 - a quote older than 30 seconds cannot be confirmed: the price may have run
   ---
-  duration_ms: 0.712921
+  duration_ms: 0.686313
   type: 'test'
   ...
 # Subtest: when GMGN never answers, the order is marked unknown and never sent again
 ok 164 - when GMGN never answers, the order is marked unknown and never sent again
   ---
-  duration_ms: 1.927775
+  duration_ms: 2.153706
   type: 'test'
   ...
 # Subtest: sell 50% quotes half your real coin balance
 ok 165 - sell 50% quotes half your real coin balance
   ---
-  duration_ms: 0.702911
+  duration_ms: 0.775582
   type: 'test'
   ...
 # Subtest: a refused order is reported with GMGN's reason
 ok 166 - a refused order is reported with GMGN's reason
   ---
-  duration_ms: 0.846223
+  duration_ms: 0.837633
   type: 'test'
   ...
 # Subtest: an exit plan rides on the buy as GMGN condition orders: partial take-profits, trailing stop, hard stop
 ok 167 - an exit plan rides on the buy as GMGN condition orders: partial take-profits, trailing stop, hard stop
   ---
-  duration_ms: 1.597105
+  duration_ms: 1.664175
   type: 'test'
   ...
 # Subtest: without an exit plan the buy carries no condition orders and normal tips
 ok 168 - without an exit plan the buy carries no condition orders and normal tips
   ---
-  duration_ms: 0.825112
+  duration_ms: 0.824902
   type: 'test'
   ...
 # Subtest: normalizes a live activity row and drops transfers
 ok 169 - normalizes a live activity row and drops transfers
   ---
-  duration_ms: 1.143184
+  duration_ms: 1.381814
   type: 'test'
   ...
 # Subtest: builds round trips oldest-first even though GMGN returns newest-first
 ok 170 - builds round trips oldest-first even though GMGN returns newest-first
   ---
-  duration_ms: 0.540272
+  duration_ms: 0.600792
   type: 'test'
   ...
 # Subtest: a re-buy after a full exit is a new position, not a lifetime ban
 ok 171 - a re-buy after a full exit is a new position, not a lifetime ban
   ---
-  duration_ms: 0.332552
+  duration_ms: 0.410231
   type: 'test'
   ...
 # Subtest: sells of coins bought before the data window are counted, not invented
 ok 172 - sells of coins bought before the data window are counted, not invented
   ---
-  duration_ms: 0.323151
+  duration_ms: 0.32743
   type: 'test'
   ...
 # Subtest: dust left after selling still counts as a closed trade
 ok 173 - dust left after selling still counts as a closed trade
   ---
-  duration_ms: 0.279991
+  duration_ms: 0.281811
   type: 'test'
   ...
 # Subtest: entry stage: snipe, early curve, graduated, unknown
 ok 174 - entry stage: snipe, early curve, graduated, unknown
   ---
-  duration_ms: 0.313731
+  duration_ms: 0.270632
   type: 'test'
   ...
 1..174
@@ -1055,4 +1055,4 @@ ok 174 - entry stage: snipe, early curve, graduated, unknown
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 2309.027531
+# duration_ms 2203.615383

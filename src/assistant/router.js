@@ -92,6 +92,7 @@ export function classify(q, ctx = {}) {
 }
 
 const reply = (text, evidence = [], actions = [], data = null, label = null) => ({ text, evidence, actions, data, label, by: 'built-in' });
+const times = (n = 0) => (n === 1 ? 'once' : `${n ?? 0} times`);
 const x = (m) => (m == null || !Number.isFinite(m) ? '?' : `${roundNice(m)}x`);
 const needCoin = () => reply('Which coin? Open a coin first (click it on the Pulse board) or paste its address.');
 const who = (b) => (b.explosiveName ? `${b.explosiveName} (${short(b.wallet)})` : short(b.wallet));
@@ -241,7 +242,7 @@ export async function answer(q, ctx, svc) {
       return reply(
         `${nameOf(top)} ${intent === 'before_graduation' ? 'gets in before graduation and ' : ''}catches explosive moves you could have copied: following it with $${size} a trade would have made about ${usdSigned(top.perActiveDayUsd)} per active day after fees and copy delay.`,
         [
-          `Its buys went on to 7x+ ${ex.found?.[7] ?? 0} times; your copies would have caught 3x+ ${ex.followerCaptured?.[3] ?? 0} times and 5x+ ${ex.followerCaptured?.[5] ?? 0} times (SIMULATED).`,
+          `Its buys went on to 7x+ ${times(ex.found?.[7])}; your copies would have caught 3x+ ${times(ex.followerCaptured?.[3])} and 5x+ ${times(ex.followerCaptured?.[5])} (SIMULATED).`,
           ex.edgeKeptPct != null ? `A follower kept ${pct(ex.edgeKeptPct / 100, 0)} of its edge after the copy delay.` : 'Edge kept after delay: unavailable.',
           ...copyable.slice(1, 3).map((r) => `${nameOf(r)}: ${usdSigned(r.perActiveDayUsd)} per active day, ${r.explosive.followerCaptured?.[3] ?? 0} copied 3x+ wins.`),
           ...passed,

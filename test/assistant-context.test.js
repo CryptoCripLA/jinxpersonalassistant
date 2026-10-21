@@ -119,6 +119,8 @@ test('"which wallet catches explosive moves" recommends only wallets the advisor
   assert.match(a.text, /@good/);
   assert.doesNotMatch(a.text, /BUSY/);
   assert.ok(a.evidence.some((e) => /BUSY/.test(e) && /144 coins a day/.test(e) && /not for you/i.test(e)));
+  const once = await answer('Which wallet repeatedly catches explosive moves?', {}, { ...s, explosiveBoard: () => s.explosiveBoard().map((r) => ({ ...r, explosive: { ...ex, followerCaptured: { 3: 1, 5: 0 }, found: { 7: 1 } } })) });
+  assert.match(once.evidence[0], /7x\+ once; your copies would have caught 3x\+ once and 5x\+ 0 times/);
   const none = await answer('Which wallet repeatedly catches explosive moves?', {}, { ...s, explosiveBoard: () => s.explosiveBoard().slice(0, 1) });
   assert.match(none.text, /No wallet that fits your style/);
   assert.match(none.text, /144 coins a day/);
