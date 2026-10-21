@@ -1,5 +1,5 @@
 // Pulse: four GMGN-style columns fed by the server's live board. Explosive now comes first.
-import { h, clear, icon, logo, usdShort, age, isNum, explainAttrs } from '../core.js';
+import { add, h, clear, icon, logo, usdShort, age, isNum, explainAttrs } from '../core.js';
 
 const COLS = [
   { key: 'explosive', title: 'Explosive now', hint: 'strongest live momentum', explain: 'pulse.explosive' },
@@ -23,11 +23,11 @@ export function mountPulse(el, { open, visible }) {
   for (const c of COLS) {
     rowsEls[c.key] = h('div', { class: 'rows' }, h('div', { class: 'skeleton' }), h('div', { class: 'skeleton' }), h('div', { class: 'skeleton' }));
     countEls[c.key] = h('span', { class: 'count' });
-    grid.append(h('div', { class: `col ${c.key}` },
+    add(grid, h('div', { class: `col ${c.key}` },
       h('div', { class: 'col-head', ...explainAttrs(c.explain) }, h('h2', {}, c.title), countEls[c.key], h('span', { class: 'hint' }, c.hint)),
       rowsEls[c.key]));
   }
-  clear(root).append(grid);
+  add(clear(root), grid);
 }
 
 function scoreClass(s) {
@@ -77,10 +77,10 @@ export function updatePulse(cols) {
       const msg = cols.error ? `GMGN did not answer: ${cols.error}`
         : c.key === 'explosive' ? (cols.warmingUp ? 'Measuring live buying speed on every listed coin (about 10 seconds after the board opens)…' : 'Nothing is igniting right now. Coins appear here when buying speeds up with real buyers.')
         : 'Waiting for the next update.';
-      clear(box).append(h('p', { class: 'empty' }, msg));
+      add(clear(box), h('p', { class: 'empty' }, msg));
       continue;
     }
-    clear(box).append(...list.map((x) => row(x, { sweep: c.key === 'explosive' && lastExplosive.size > 0 && !lastExplosive.has(x.address) })));
+    add(clear(box), ...list.map((x) => row(x, { sweep: c.key === 'explosive' && lastExplosive.size > 0 && !lastExplosive.has(x.address) })));
     box.scrollTop = top;
   }
   lastExplosive = nextExplosive;

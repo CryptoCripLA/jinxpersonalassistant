@@ -66,6 +66,9 @@ export function classify(q, ctx = {}) {
   if (/explosive wallet|\b(wallet|trader)s?\b.*\b(repeatedly|keeps?|consistently|always)\b|catch(es)? explosive/i.test(text)) {
     return { intent: 'explosive_wallets', params: {} };
   }
+  if (ctx.coin?.address && /\b(this|it)\b/i.test(text) && /(should i (buy|get in|enter|ape)|worth (it|touching|buying|a (try|shot))|good (buy|entry)|buy (it|this)|quick \d+x|is (this|it) a buy)/i.test(text)) {
+    return { intent: 'coin_verdict', params: { coin: ctx.coin.address } };
+  }
   const last = text.match(/last (\d+|ten|five) (coins|trades|tokens)/i);
   if (last || /what did (this|that) (wallet|trader) do/i.test(text)) {
     const n = last ? (Number(last[1]) || { ten: 10, five: 5 }[last[1].toLowerCase()]) : 10;
@@ -81,7 +84,7 @@ export function classify(q, ctx = {}) {
   if (/(best|top|good|who) .*(trader|wallet)|who (makes|made|earns) the most|suggest|which wallet|who should i copy/i.test(text)) {
     return { intent: 'best_wallet', params: { category: category(text) } };
   }
-  if (/\b(coin|token|opportunit)/i.test(text) && /(best|strong|promising|opportunit|right now|buy now|worth|should i buy|which)/i.test(text)) {
+  if (/\b(coin|token|opportunit)/i.test(text) && !/\bthis (coin|token)\b/i.test(text) && /(best|strong|promising|opportunit|right now|buy now|worth|should i buy|which)/i.test(text)) {
     return { intent: 'opportunity', params: { category: coinCategory(text) } };
   }
   if (TERM_PATTERN.test(text) && /\?$/.test(text.trim())) return { intent: 'explain', params: { term: text.match(TERM_PATTERN)[0].toLowerCase() } };
@@ -99,6 +102,8 @@ export async function answer(q, ctx, svc) {
   switch (intent) {
     case 'explain_element':
       return explainElement(params.element, ctx);
+    case 'coin_verdict':
+      return svc.brief({ view: 'coin', coin: { address: params.coin } });
     case 'explain': {
       const e = explainTerm(params.term);
       return e ? reply(e) : null;

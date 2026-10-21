@@ -1,16 +1,16 @@
 // Portfolio (LIVE from GMGN) and the copy desk (ported from the first version, same controls).
-import { h, clear, api, usd, usdSigned, pct, short, isNum, signClass, label, toast, explainAttrs } from '../core.js';
+import { add, h, clear, api, usd, usdSigned, pct, short, isNum, signClass, label, toast, explainAttrs } from '../core.js';
 
 const ORDER_WORDS = { sending: 'sending', submitted: 'sent, waiting for the chain', confirmed: 'filled', failed: 'failed', unknown: 'unknown (check GMGN, not re-sent)' };
 
 export async function openPortfolio(root, hooks) {
   hooks.setContext({ view: 'portfolio', coin: null });
-  clear(root).append(h('div', { class: 'page' }, h('div', { class: 'skeleton' }), h('div', { class: 'skeleton' })));
+  add(clear(root), h('div', { class: 'page' }, h('div', { class: 'skeleton' }), h('div', { class: 'skeleton' })));
   let p;
   try {
     p = await api('/api/portfolio');
   } catch (e) {
-    clear(root).append(h('div', { class: 'page' }, h('p', {}, `Portfolio unavailable: ${e.message}`)));
+    add(clear(root), h('div', { class: 'page' }, h('p', {}, `Portfolio unavailable: ${e.message}`)));
     return;
   }
   const open = p.holdings.filter((x) => x.open);
@@ -27,7 +27,7 @@ export async function openPortfolio(root, hooks) {
       h('td', { class: `n ${signClass(x.unrealizedUsd)}` }, usdSigned(x.unrealizedUsd)),
       h('td', { class: `n ${signClass(x.totalUsd)}` }, `${usdSigned(x.totalUsd)} `, h('span', { class: 'faint' }, isNum(x.totalPct) ? `(${pct(x.totalPct)})` : '')),
       h('td', { class: 'n faint' }, `${x.buys ?? 0} / ${x.sells ?? 0}`)))));
-  clear(root).append(h('div', { class: 'page' },
+  add(clear(root), h('div', { class: 'page' },
     h('div', { class: 'page-head' }, h('div', {}, h('h1', explainAttrs('nav.portfolio'), 'Portfolio ', label('LIVE')), h('p', {}, `Your GMGN wallet ${p.account?.address ? short(p.account.address) : ''}. ${p.account?.rateLine ?? ''}`))),
     h('div', { class: 'totals' },
       stat(usd(p.account?.totalUsd), 'cash in the wallet', 'shell.balance'),
@@ -72,7 +72,7 @@ export async function openDesk(root, hooks) {
   try {
     d = await api('/api/copy');
   } catch (e) {
-    clear(root).append(h('div', { class: 'page' }, h('p', {}, `Copy desk unavailable: ${e.message}`)));
+    add(clear(root), h('div', { class: 'page' }, h('p', {}, `Copy desk unavailable: ${e.message}`)));
     return;
   }
   const mode = d.config.mode;
@@ -106,7 +106,7 @@ export async function openDesk(root, hooks) {
     h('button', { class: 'btn small', type: 'submit' }, 'Save limits'));
   const now = Date.now();
   const waiting = d.intents.filter((i) => i.state === 'awaiting_approval');
-  clear(root).append(h('div', { class: 'page' },
+  add(clear(root), h('div', { class: 'page' },
     h('div', { class: 'page-head' }, h('div', {}, h('h1', explainAttrs('nav.desk'), 'Copy desk'), h('p', {}, 'Follows wallets you chose and turns their trades into your orders through GMGN.'))),
     h('div', { class: 'desk-grid' },
       h('section', {},

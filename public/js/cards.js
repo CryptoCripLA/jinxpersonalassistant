@@ -1,6 +1,6 @@
 // Recommendation cards (layout pinned by the owner's mockup): a titled card, a two-by-two of
 // facts, "Why I picked this", a filled primary action and an outlined Explain action.
-import { h, clear, api, icon, logo, usd, usdWhole, usdShort, usdSigned, duration, age, isNum, signClass, label, toast, explainAttrs, short } from './core.js';
+import { add, h, clear, api, icon, logo, usd, usdWhole, usdShort, usdSigned, duration, age, isNum, signClass, label, toast, explainAttrs, short } from './core.js';
 
 const FIT = { fits: ['Fits your style', 'fit-ok'], close: ['Close match', 'fit-close'], no: ['Does not fit', 'fit-no'] };
 const nameOf = (p) => p.name || short(p.wallet);
@@ -14,7 +14,7 @@ export function traderCard(p, hooks, { targetUsd = null } = {}) {
   const card = h('article', { class: 'rec' });
   const panel = h('div', { class: 'copy-panel', hidden: true });
   const copyBtn = h('button', { class: 'btn primary', type: 'button', onclick: () => openCopyPanel(panel, p, hooks, copyBtn) }, 'Copy this trader');
-  card.append(
+  add(card, 
     h('header', { class: 'rec-head' },
       h('div', {}, h('h3', {}, h('button', { class: 'wl', type: 'button', onclick: () => hooks.openWallet(p.wallet) }, nameOf(p))), h('p', { class: 'rec-type' }, p.type.label)),
       h('span', { class: `fit ${fitCls}`, ...explainAttrs('wallets.board', fitText) }, fitText)),
@@ -39,12 +39,12 @@ async function openCopyPanel(panel, p, hooks, btn) {
     return;
   }
   panel.hidden = false;
-  clear(panel).append(h('p', { class: 'faint' }, 'Reading this trader\'s copy settings…'));
+  add(clear(panel), h('p', { class: 'faint' }, 'Reading this trader\'s copy settings…'));
   let d;
   try {
     d = await api(`/api/wallet/${p.wallet}`);
   } catch (e) {
-    clear(panel).append(h('p', { class: 'down' }, e.message));
+    add(clear(panel), h('p', { class: 'down' }, e.message));
     return;
   }
   let mode = 'watch';
@@ -81,7 +81,7 @@ async function openCopyPanel(panel, p, hooks, btn) {
       start.disabled = false;
     }
   });
-  clear(panel).append(
+  add(clear(panel), 
     h('h4', {}, 'How copying works for this trader'),
     radios,
     h('ul', { class: 'settings-plain' }, items.map((i) => h('li', {}, h('b', {}, `${i.setting}: `), i.value, h('span', { class: 'faint' }, ` — ${i.simple}`)))),

@@ -1,7 +1,7 @@
 // The desk analyst: a docked rail that always knows what is on screen (view, open coin, open
 // wallet, last clicked element) and sends that context with every question. Explain mode
 // (button or "?") turns every data-explain element into a question instead of a click.
-import { $, api, h, clear, label, toast } from './core.js';
+import { add, $, api, h, clear, label, toast } from './core.js';
 
 const ctx = { view: 'pulse', coin: null, wallet: null, element: null, visible: [] };
 let size = 25;
@@ -36,7 +36,7 @@ export const getContext = () => ctx;
 
 function renderSugs() {
   const s = clear($('sugs'));
-  for (const q of (SUGGEST[ctx.view] ?? SUGGEST.pulse)().slice(0, 6)) s.append(h('button', { type: 'button', onclick: () => ask(q) }, q));
+  for (const q of (SUGGEST[ctx.view] ?? SUGGEST.pulse)().slice(0, 6)) add(s, h('button', { type: 'button', onclick: () => ask(q) }, q));
 }
 
 function scrollFeed() {
@@ -48,10 +48,15 @@ function actionButton(a) {
   return h('button', { class: 'btn small', type: 'button', onclick: () => (a.kind === 'ask' ? ask(a.question) : onAction(a)) }, a.label);
 }
 
+// Grok writes light Markdown: paragraphs and **bold**. Rendered as text nodes and <b>, never HTML.
+function rich(text) {
+  return String(text ?? '').split(/\n{2,}/).map((para) => h('p', { class: 'lead' }, para.split(/(\*\*[^*]+\*\*)/g).filter(Boolean).map((part) => (/^\*\*[^*]+\*\*$/.test(part) ? h('b', {}, part.slice(2, -2)) : part.replace(/^[-*] /gm, '• ')))));
+}
+
 function renderAnswer(r) {
   const meta = h('div', { class: 'meta' }, r.label ? label(r.label) : null, r.by === 'grok' ? `Grok${r.costUsd ? `, ${r.costUsd < 0.01 ? 'under 1¢' : `about ${Math.round(r.costUsd * 100)}¢`}` : ''}` : r.by === 'built-in' ? (r.proactive ? 'briefing from app data' : 'from app data') : '');
   return h('div', { class: `msg ai${r.proactive ? ' brief' : ''}` },
-    h('p', { class: 'lead' }, r.text),
+    rich(r.text),
     r.evidence?.length ? h('ul', {}, r.evidence.map((e) => h('li', {}, e))) : null,
     r.actions?.length ? h('div', { class: 'acts' }, r.actions.map(actionButton)) : null,
     meta);
@@ -66,14 +71,14 @@ export async function autoBrief(context) {
   try {
     const r = await api('/api/brief', { context });
     if (!r?.text) return;
-    $('feed').append(renderAnswer(r));
+    add($('feed'), renderAnswer(r));
     scrollFeed();
   } catch { /* briefings are best-effort */ }
 }
 
 // Unprompted heads-ups (a recommended trader just bought something).
 export function alert(text, actions = []) {
-  $('feed').append(h('div', { class: 'msg ai alert' }, h('p', { class: 'lead' }, text), actions.length ? h('div', { class: 'acts' }, actions.map(actionButton)) : null, h('div', { class: 'meta' }, label('LIVE'), new Date().toLocaleTimeString())));
+  add($('feed'), h('div', { class: 'msg ai alert' }, h('p', { class: 'lead' }, text), actions.length ? h('div', { class: 'acts' }, actions.map(actionButton)) : null, h('div', { class: 'meta' }, label('LIVE'), new Date().toLocaleTimeString())));
   scrollFeed();
 }
 
@@ -84,7 +89,7 @@ export function showApprovals(list, { approve, skip }) {
   clear(box);
   for (const i of list) {
     const left = Math.max(0, Math.round((i.detail.expiresAt - Date.now()) / 1000));
-    box.append(h('div', { class: 'approval' },
+    add(box, h('div', { class: 'approval' },
       h('p', {}, h('b', {}, `Copy ${i.symbol || 'a coin'}?`), ` ${i.wallet.slice(0, 4)}… just bought it. Buy $${i.detail.sizeUsd}? `, h('span', { class: 'faint' }, `${left}s left`)),
       h('div', { class: 'acts' }, h('button', { class: 'btn small buy', type: 'button', onclick: () => approve(i.id) }, `Buy $${i.detail.sizeUsd}`), h('button', { class: 'btn small', type: 'button', onclick: () => skip(i.id) }, 'Skip'))));
   }
@@ -94,9 +99,9 @@ export async function ask(question, { element = null } = {}) {
   const q = String(question ?? '').trim();
   if (!q) return;
   const feed = $('feed');
-  feed.append(h('div', { class: 'msg me' }, q));
+  add(feed, h('div', { class: 'msg me' }, q));
   const pending = h('div', { class: 'msg ai thinking' }, h('p', { class: 'lead' }, 'Checking the live data…'));
-  feed.append(pending);
+  add(feed, pending);
   scrollFeed();
   try {
     const context = { ...ctx, element: element ?? ctx.element };
@@ -170,7 +175,7 @@ export function initAssistant({ onActionFn }) {
       setExplain(!explaining);
     } else if (ev.key === 'Escape' && explaining) setExplain(false);
   });
-  $('feed').append(h('div', { class: 'msg ai' },
+  add($('feed'), h('div', { class: 'msg ai' },
     h('p', { class: 'lead' }, 'I research for you and brief you on every screen. Ask me anything in your own words, or turn on Explain (press ?) and click whatever is unclear.'),
     h('ul', {}, h('li', {}, 'Numbers come from GMGN and pump.fun live, never made up.'), h('li', {}, 'HISTORICAL means a wallet really did it; SIMULATED is what your $25 copy would have done; LIVE is your real money.'))));
   renderSugs();

@@ -22,17 +22,18 @@ export class GmgnError extends Error {
 }
 
 export class Gmgn {
-  // headroom: the share of the plan this client may use. The server runs two lanes on one key
-  // (what the owner clicks, and background research) plus spare room for the owner's own GMGN
-  // tools. peers: the other lanes; a GMGN pause hit by any lane pauses them all.
-  constructor({ api, db, plan = 'pro', headroom = 0.8, peers = [], sleep = (ms) => new Promise((r) => setTimeout(r, ms)), now = Date.now }) {
+  // headroom: the share of the plan used at all (room left for the owner's own GMGN tools).
+  // bucket: pass another client's bucket to share one budget per key (a GMGN pause then pauses
+  // every client). ceiling: how full this client may fill that budget (research uses 0.6, so
+  // clicks and trades always find room).
+  constructor({ api, db, plan = 'pro', headroom = 0.8, bucket = null, ceiling = 1, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), now = Date.now }) {
     this.api = api;
     this.db = db;
     this.planName = plan;
-    this.peers = peers;
+    this.ceiling = ceiling;
     const p = PLANS[plan] ?? PLANS.free;
     const share = (x) => Math.round(x * headroom * 100) / 100;
-    this.bucket = new LeakyBucket({ rate: share(p.rate), capacity: share(p.capacity) }, now);
+    this.bucket = bucket ?? new LeakyBucket({ rate: share(p.rate), capacity: share(p.capacity) }, now);
     this.sleep = sleep;
     this.now = now;
     this.oneSecondRefused = false;
@@ -64,7 +65,7 @@ export class Gmgn {
     if (this.blockedRoutes.has(route) || this.bucket.delayFor(weight).impossible) {
       throw new GmgnError(`This GMGN request (${route}) needs a bigger GMGN API plan than the one on your key.`, { code: 'PLAN', route, answered: true });
     }
-    const wait = this.bucket.take(weight);
+    const wait = this.bucket.take(weight, this.ceiling);
     if (wait > 0) await this.sleep(wait);
     this.stats.calls += 1;
     try {
@@ -83,7 +84,6 @@ export class Gmgn {
       // two seconds past GMGN's own reset time: calls right at the edge extended the ban
       const resetAt = (e.resetAtUnix ?? Math.floor(this.now() / 1000) + 300) * 1000 + 2000;
       this.bucket.banUntil(resetAt);
-      for (const peer of this.peers) peer.bucket.banUntil(resetAt);
       return new GmgnError(`GMGN paused requests until ${new Date(resetAt).toISOString().slice(11, 19)} UTC (rate limit). Waiting instead of retrying.`, { code: 'RATE', route, resetAt, answered: true });
     }
     if (e.apiError === 'PLAN_UPGRADE_REQUIRED' || e.apiError === 'PRO_PLAN_REQUIRED') {

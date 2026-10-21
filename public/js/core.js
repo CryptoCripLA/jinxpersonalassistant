@@ -52,6 +52,12 @@ export function icon(name) {
   return svg('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' }, svg('path', { d: ICONS[name] }));
 }
 
+// Like el.append, but skips null / undefined / false (the DOM's own append would print "null").
+export function add(el, ...kids) {
+  for (const k of kids.flat(Infinity)) if (k != null && k !== false) el.append(k instanceof Node ? k : String(k));
+  return el;
+}
+
 export const clear = (el) => {
   el.replaceChildren();
   return el;

@@ -1,6 +1,6 @@
 // Today: the home screen. Opens already researched: account, today's target and the plan,
 // the traders I recommend, the opportunities right now, and what I skipped and why.
-import { h, clear, api, icon, usd, duration, isNum, toast, explainAttrs } from '../core.js';
+import { add, h, clear, api, icon, usd, duration, isNum, toast, explainAttrs } from '../core.js';
 import { traderCard, opportunityCard, skippedList } from '../cards.js';
 
 let timer = null;
@@ -51,7 +51,7 @@ function prefsPanel(p, onSaved) {
     field('hardStopPct', 'Hard stop: sell everything after a loss of (%)', p.hardStopPct, { min: 5, max: 95 }),
     h('label', { class: 'pf pf-check' }, h('input', { name: 'useExitPlan', type: 'checkbox', value: '1', checked: p.useExitPlan }), h('span', {}, 'Attach this exit plan to every buy')),
     h('button', { class: 'btn primary', type: 'submit' }, 'Save my style'));
-  box.append(h('summary', {}, h('b', {}, 'Your style: '), `$${p.sizeUsd} a trade · ${p.minCoinsPerDay}–${p.maxCoinsPerDay} coins a day · holds under ${duration(p.maxHoldMin * 60)} · hunting ${p.targetMultipleLow}x–${p.targetMultipleHigh}x+ · exits: ${p.exitText}`, h('span', { class: 'edit' }, 'Edit')), form);
+  add(box, h('summary', {}, h('b', {}, 'Your style: '), `$${p.sizeUsd} a trade · ${p.minCoinsPerDay}–${p.maxCoinsPerDay} coins a day · holds under ${duration(p.maxHoldMin * 60)} · hunting ${p.targetMultipleLow}x–${p.targetMultipleHigh}x+ · exits: ${p.exitText}`, h('span', { class: 'edit' }, 'Edit')), form);
   return box;
 }
 
@@ -76,13 +76,13 @@ function missionCard(t, reload) {
 export async function openToday(root, hooks) {
   hooks.setContext({ view: 'today', coin: null, wallet: null });
   clearTimeout(timer);
-  if (!root.firstChild) clear(root).append(h('div', { class: 'page' }, h('div', { class: 'skeleton' }), h('div', { class: 'skeleton' }), h('p', { class: 'faint' }, 'Researching for you…')));
+  if (!root.firstChild) add(clear(root), h('div', { class: 'page' }, h('div', { class: 'skeleton' }), h('div', { class: 'skeleton' }), h('p', { class: 'faint' }, 'Researching for you…')));
   const load = async (fresh = false) => {
     let t;
     try {
       t = await api(`/api/today${fresh ? '?fresh=1' : ''}`);
     } catch (e) {
-      clear(root).append(h('div', { class: 'page' }, h('p', {}, `I could not finish the research: ${e.message}`)));
+      add(clear(root), h('div', { class: 'page' }, h('p', {}, `I could not finish the research: ${e.message}`)));
       return;
     }
     if (!location.hash.startsWith('#/today') && location.hash !== '' && location.hash !== '#/') return;
@@ -90,7 +90,7 @@ export async function openToday(root, hooks) {
     const picks = t.traders.picks ?? [];
     const opps = t.opportunities ?? [];
     const r = t.research;
-    clear(root).append(h('div', { class: 'page today' },
+    add(clear(root), h('div', { class: 'page today' },
       h('header', { class: 'today-head' },
         h('h1', {}, greeting(), ' ', h('span', { class: 'muted' }, "Here's what I researched for you.")),
         accountLine(t.account)),

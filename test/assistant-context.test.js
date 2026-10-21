@@ -40,6 +40,8 @@ test('the owner\'s example questions map to intents using what is on screen', ()
   assert.equal(classify("What's the most promising opportunity right now?", ctx).params.category, 'explosive');
   assert.equal(classify('Which of these coins has the strongest early momentum?', ctx).params.category, 'explosive');
   assert.equal(classify('Why did that trader sell?', ctx).intent, 'when_selling');
+  assert.notEqual(classify('Is this coin worth touching for a quick 2x?', ctx).intent, 'opportunity', 'a question about the open coin is not a "best coin" search');
+  assert.equal(classify('Should I buy this coin?', ctx).intent, 'coin_verdict');
 });
 
 const coin = {

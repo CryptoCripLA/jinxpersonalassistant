@@ -28,10 +28,10 @@ if (!api) {
   process.exit(1);
 }
 const db = openDb(DB_PATH);
-// Two lanes on one GMGN key: what you click gets its own share so research never queues it.
-const g = new Gmgn({ api, db, plan: GMGN_PLAN, headroom: 0.35 });
-const gJob = new Gmgn({ api, db, plan: GMGN_PLAN, headroom: 0.45, peers: [g] });
-g.peers.push(gJob);
+// One GMGN budget for the key (80% of the plan). Background research may fill only 60% of it,
+// so what you click, quotes and swaps (weight 10) always find room, and a GMGN pause pauses both.
+const g = new Gmgn({ api, db, plan: GMGN_PLAN, headroom: 0.8 });
+const gJob = new Gmgn({ api, db, plan: GMGN_PLAN, bucket: g.bucket, ceiling: 0.6 });
 const svc = new Service({ g, db, exportDir: EXPORT_DIR, log: (m) => console.log(m) });
 svc.gJob = gJob;
 const grokKey = grokFromEnv(DATA_DIR);

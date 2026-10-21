@@ -1,6 +1,6 @@
 // History: real coins that ran 7x+ within a day, what was visible before the breakout, what
 // came too late, and what a follower entering after each signal would have made.
-import { h, svg, clear, api, icon, usdShort, mult, short, duration, isNum, label, toast, explainAttrs } from '../core.js';
+import { add, h, svg, clear, api, icon, usdShort, mult, short, duration, isNum, label, toast, explainAttrs } from '../core.js';
 
 const WHEN = { before: ['before', 'BEFORE'], during: ['during', 'DURING'], 'too late': ['late', 'TOO LATE'] };
 
@@ -46,14 +46,14 @@ function studyLine(r) {
 
 export async function openHistory(root, hooks) {
   hooks.setContext({ view: 'history', coin: null });
-  clear(root).append(h('div', { class: 'page' }, h('div', { class: 'skeleton' }), h('div', { class: 'skeleton' })));
+  add(clear(root), h('div', { class: 'page' }, h('div', { class: 'skeleton' }), h('div', { class: 'skeleton' })));
   const { summary, examples } = await api('/api/history');
   const page = h('div', { class: 'page' },
     h('div', { class: 'page-head' },
       h('div', {}, h('h1', explainAttrs('nav.history'), 'Past explosive runs'), h('p', {}, `${examples.length} real coins that ran 7x or more within 6 hours of launch, read from GMGN 1-minute candles and top traders: ${summary.launches} launch spikes (the run happened in the first minutes, before anyone could react) and ${summary.breakouts} later breakouts. Every one of them did run, so these show what early looked like, not how often coins run.`), studyLine(summary.lastRun)),
       h('div', { class: 'actions' }, h('button', { class: 'btn small', type: 'button', onclick: async () => { try { await api('/api/jobs', { kind: 'study' }); toast('Studying more coins in the background.'); } catch (e) { toast(e.message); } } }, icon('refresh'), 'Study more coins'))));
   if (summary.signals.length) {
-    page.append(h('h2', { style: { fontSize: '15px', margin: '6px 0 10px' }, ...explainAttrs('history.signal') }, 'Which signals came early enough to profit ', label('SIMULATED')),
+    add(page, h('h2', { style: { fontSize: '15px', margin: '6px 0 10px' }, ...explainAttrs('history.signal') }, 'Which signals came early enough to profit ', label('SIMULATED')),
       h('div', { class: 'sigbars' }, summary.signals.map((s) => h('div', { class: 'sigbar' },
         h('span', {}, s.label),
         h('span', { class: 'track', title: `${s.early} before, ${s.during} during, ${s.late} too late` },
@@ -63,8 +63,8 @@ export async function openHistory(root, hooks) {
         h('span', { class: 'faint' }, `${s.early}/${s.seen} early · follower ${mult(s.medianFollowerMultiple)} median`)))),
       h('p', { class: 'faint', style: { fontSize: '12px', marginBottom: '16px' } }, 'Green: showed up before the price doubled. Amber: after, with at least 2x left. Red: too late. Follower result: entering 30 seconds after the signal, selling after a 30% drop from the high; candle prices, fees not included.'));
   }
-  if (!examples.length) page.append(h('p', { class: 'empty' }, 'No study yet. Press "Study more coins".'));
-  page.append(h('div', { class: 'examples' }, examples.map((ex) => h('article', { class: 'example', ...explainAttrs('history.example') },
+  if (!examples.length) add(page, h('p', { class: 'empty' }, 'No study yet. Press "Study more coins".'));
+  add(page, h('div', { class: 'examples' }, examples.map((ex) => h('article', { class: 'example', ...explainAttrs('history.example') },
     spark(ex),
     h('div', { class: 'ex-body' },
       h('h3', {}, h('button', { class: 'wl', type: 'button', onclick: () => hooks.openCoin(ex.token) }, ex.symbol || short(ex.token)), h('span', { class: 'money' }, mult(ex.move.multiple)), h('span', { class: `chip ${ex.kind === 'launch' ? 'warn' : 'smart'}` }, ex.kind === 'launch' ? 'Launch spike' : 'Later breakout'), h('span', { class: 'faint', style: { fontSize: '12.5px', fontWeight: 400 } }, `${usdShort(ex.baseMcapUsd)} → ${usdShort(ex.peakMcapUsd)} in ${duration(ex.move.durationSec)} · launched ${new Date(ex.creationTs * 1000).toLocaleString()}`), label('HISTORICAL')),
@@ -81,5 +81,5 @@ export async function openHistory(root, hooks) {
       ex.earlyWallets?.length
         ? h('p', { class: 'faint', style: { fontSize: '12.5px' } }, `${ex.earlyWallets.length} wallets were in before the breakout: `, ...ex.earlyWallets.slice(0, 4).map((w) => h('button', { class: 'wl', type: 'button', style: { marginRight: '8px' }, onclick: () => hooks.openWallet(w.wallet) }, `${w.name || short(w.wallet)}${isNum(w.capturedMultiple) ? ` sold ${mult(w.capturedMultiple)}` : ''}`)))
         : h('p', { class: 'faint', style: { fontSize: '12.5px' } }, 'GMGN listed no wallets that were in before the breakout.'))))));
-  clear(root).append(page);
+  add(clear(root), page);
 }

@@ -28,18 +28,20 @@ export class LeakyBucket {
     this.last = t;
   }
 
-  delayFor(weight) {
+  // ceiling: the share of capacity this caller may fill. Background research uses less than 1,
+  // so the owner's clicks and trades (a quote or swap weighs 10) always find room.
+  delayFor(weight, ceiling = 1) {
     if (weight > this.plan.capacity) return { impossible: true, ms: Infinity };
     this.drain();
     const t = this.now();
     const banned = Math.max(0, this.bannedUntil - t);
-    const excess = this.level + weight - this.plan.capacity;
+    const excess = this.level + weight - this.plan.capacity * ceiling;
     return { impossible: false, ms: banned + (excess > 0 ? Math.ceil((excess / this.plan.rate) * 1000) : 0) };
   }
 
   // Reserve capacity now; returns how long the caller must wait before sending.
-  take(weight) {
-    const d = this.delayFor(weight);
+  take(weight, ceiling = 1) {
+    const d = this.delayFor(weight, ceiling);
     if (d.impossible) return d.ms;
     this.level += weight;
     return d.ms;

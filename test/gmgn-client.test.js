@@ -96,15 +96,28 @@ test('trending reads the rank list whether GMGN wraps it in data or not', async 
   assert.deepEqual((await g.trending('1h')).rank, [{ address: 'B' }]);
 });
 
-test('two lanes on one key: a GMGN pause hit by the background lane also pauses the interactive lane', async () => {
+test('one budget per key: research may only fill part of it, clicks and trades can use all of it', async () => {
+  const { api } = fakeApi({ quoteOrder: async () => ({ output_amount: '1' }), getTokenInfo: async () => ({}) });
+  const db = openDb(':memory:');
+  let t = 1_000_000;
+  const slept = [];
+  const live = new Gmgn({ api, db, plan: 'plus', sleep: async (ms) => { slept.push(ms); t += ms; }, now: () => t });
+  const job = new Gmgn({ api, db, plan: 'plus', bucket: live.bucket, ceiling: 0.6, sleep: async (ms) => { slept.push(ms); t += ms; }, now: () => t });
+  assert.equal(job.bucket, live.bucket, 'one shared bucket, so the key can never be over-asked');
+  await live.quote({ from_address: 'ME', input_token: 'A', output_token: 'B', input_amount: '1', slippage: 30 });
+  assert.equal(slept.length, 0, 'a weight-10 quote fits the interactive budget');
+  for (let i = 0; i < 5; i++) await job.tokenInfo(`M${i}`);
+  assert.ok(slept.length > 0, 'research waits once the bucket is past its 60% share');
+});
+
+test('a GMGN pause pauses every lane on the shared budget', async () => {
   const rate = Object.assign(new Error('limit'), { name: 'OpenApiError', status: 429, apiError: 'RATE_LIMIT_BANNED', resetAtUnix: 2_000 });
   const { api } = fakeApi({ getTokenInfo: async () => { throw rate; }, getGasPrice: async () => ({ native_token_usd_price: '100' }) });
   const db = openDb(':memory:');
   const slept = [];
-  const live = new Gmgn({ api, db, plan: 'plus', headroom: 0.35, sleep: async (ms) => slept.push(ms), now: () => 1_000_000 });
-  const job = new Gmgn({ api, db, plan: 'plus', headroom: 0.45, sleep: async () => {}, now: () => 1_000_000, peers: [live] });
+  const live = new Gmgn({ api, db, plan: 'plus', sleep: async (ms) => slept.push(ms), now: () => 1_000_000 });
+  const job = new Gmgn({ api, db, plan: 'plus', bucket: live.bucket, ceiling: 0.6, sleep: async () => {}, now: () => 1_000_000 });
   await assert.rejects(() => job.tokenInfo('MINT'), /rate limit/);
   await live.solUsd();
-  assert.ok(slept[0] >= 1_000_000, 'the interactive lane waited out the pause instead of re-tripping it');
-  assert.equal(live.bucket.plan.rate, 7, '35% of the Plus bucket');
+  assert.ok(slept[0] >= 1_000_000);
 });

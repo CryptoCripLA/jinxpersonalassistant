@@ -1,7 +1,7 @@
 // Explosive wallets: ranked by what a $25 follower could have banked per active day (SIMULATED
 // on real GMGN prices, copy delay and every fee), with the coin's peak, the wallet's capture and
 // your copy kept apart on every recent coin.
-import { h, clear, api, icon, usd, usdShort, usdSigned, pct, mult, short, age, duration, isNum, signClass, label, toast, explainAttrs } from '../core.js';
+import { add, h, clear, api, icon, usd, usdShort, usdSigned, pct, mult, short, age, duration, isNum, signClass, label, toast, explainAttrs } from '../core.js';
 import { traderCard, skippedList } from '../cards.js';
 
 const FLAG_WORDS = {
@@ -22,7 +22,7 @@ function jobLine(j) {
 
 export async function openWallets(root, hooks) {
   hooks.setContext({ view: 'wallets', coin: null });
-  clear(root).append(h('div', { class: 'page' }, h('div', { class: 'skeleton' }), h('div', { class: 'skeleton' })));
+  add(clear(root), h('div', { class: 'page' }, h('div', { class: 'skeleton' }), h('div', { class: 'skeleton' })));
   const [rows, jobs, today] = await Promise.all([api('/api/wallets/explosive'), api('/api/jobs').catch(() => null), api('/api/today').catch(() => null)]);
   const status = h('span', { class: 'faint' }, jobLine(jobs));
   const runBtn = (kind, text) => h('button', { class: 'btn small', type: 'button', onclick: async () => { try { await api('/api/jobs', { kind }); toast('Research started. It runs in the background; this page updates when you reopen it.'); status.textContent = 'Working…'; } catch (e) { toast(e.message); } } }, icon('refresh'), text);
@@ -34,16 +34,16 @@ export async function openWallets(root, hooks) {
     h('div', { class: 'recs' }, picks.length ? picks.map((p) => traderCard(p, hooks, { targetUsd: today.prefs.dailyTargetUsd })) : h('p', { class: 'empty' }, 'No measured trader fits your style yet. Research keeps adding traders; you can widen your style on Today.')),
     today ? skippedList(today.traders.skipped ?? [], hooks) : null);
   const details = h('details', { class: 'more' }, h('summary', {}, `All ${rows.length} measured wallets (detailed table)`));
-  page.append(details);
+  add(page, details);
   if (!rows.length) {
-    page.append(h('p', { class: 'empty' }, 'No wallet has been measured yet. Press "Re-measure" to start; each wallet takes about 20 seconds at your GMGN plan\'s speed.'));
-    clear(root).append(page);
+    add(page, h('p', { class: 'empty' }, 'No wallet has been measured yet. Press "Re-measure" to start; each wallet takes about 20 seconds at your GMGN plan\'s speed.'));
+    add(clear(root), page);
     return;
   }
   const measured = rows.length;
   const explosive = rows.filter((r) => r.isExplosive).length;
-  details.append(h('p', { class: 'summary-line' }, `${measured} wallets measured; ${explosive} handed a follower at least one 3x copy. `, label('SIMULATED'), ' ', label('HISTORICAL')));
-  details.append(h('table', { class: 'grid' },
+  add(details, h('p', { class: 'summary-line' }, `${measured} wallets measured; ${explosive} handed a follower at least one 3x copy. `, label('SIMULATED'), ' ', label('HISTORICAL')));
+  add(details, h('table', { class: 'grid' },
     h('thead', {}, h('tr', {},
       h('th', {}, 'Wallet'),
       h('th', { class: 'n', ...explainAttrs('wallets.perday') }, 'Your $ per active day'),
@@ -71,7 +71,7 @@ export async function openWallets(root, hooks) {
         h('td', { class: 'n faint' }, isNum(r.lastTs) ? `${age(Date.now() / 1000 - r.lastTs)} ago` : ''),
         h('td', {}, (r.flags ?? []).filter((f) => f !== 'LOW_ACTIVITY').map((f) => h('span', { class: 'flag', title: FLAG_WORDS[f] }, FLAG_WORDS[f] ?? f))));
     }))));
-  clear(root).append(page);
+  add(clear(root), page);
 }
 
 function ladder(o, size) {
@@ -85,12 +85,12 @@ function ladder(o, size) {
 
 export async function openWallet(root, wallet, hooks) {
   hooks.setContext({ view: 'wallet', wallet, coin: null });
-  clear(root).append(h('div', { class: 'page' }, h('div', { class: 'skeleton' }), h('p', { class: 'faint' }, 'Reading this wallet from GMGN…')));
+  add(clear(root), h('div', { class: 'page' }, h('div', { class: 'skeleton' }), h('p', { class: 'faint' }, 'Reading this wallet from GMGN…')));
   let d;
   try {
     d = await api(`/api/wallet/${wallet}`);
   } catch (e) {
-    clear(root).append(h('div', { class: 'page' }, h('p', {}, `Could not read this wallet: ${e.message}`)));
+    add(clear(root), h('div', { class: 'page' }, h('p', {}, `Could not read this wallet: ${e.message}`)));
     return;
   }
   const p = d.profile;
@@ -124,7 +124,7 @@ export async function openWallet(root, wallet, hooks) {
       h('div', { class: 'actions' }, measureBtn, h('a', { class: 'btn small', href: `https://gmgn.ai/sol/address/${wallet}`, target: '_blank', rel: 'noopener noreferrer' }, icon('link'), 'GMGN'))));
   if (d.card) {
     const card = traderCard(d.card, hooks, {});
-    page.append(card, h('section', { class: 'behavior' },
+    add(page, card, h('section', { class: 'behavior' },
       h('h2', {}, 'How this trader behaves ', label('HISTORICAL')),
       h('ul', { class: 'reasons' }, Object.values(d.card.behavior ?? {}).map((b) => h('li', {}, b))),
       d.card.fit.good.length ? h('p', { class: 'rec-sub' }, d.card.fit.good.join(' ')) : null));
@@ -133,11 +133,11 @@ export async function openWallet(root, wallet, hooks) {
       setTimeout(() => card.querySelector('.btn.primary')?.click(), 50);
     }
   } else {
-    page.append(copyBtn);
+    add(page, copyBtn);
   }
   if (x) {
     const e = x.explosive;
-    page.append(
+    add(page, 
       h('div', { class: 'stats' },
         stat(usdSigned(e.followerNetUsd), `your $${x.sizeUsd} copies over ${x.periodDays} days`, 'wallets.follower', signClass(e.followerNetUsd)),
         stat(`${e.followerCaptured[3]} / ${e.followerCaptured[5]} / ${e.followerCaptured[10]}`, 'copies that caught 3x / 5x / 10x', 'wallets.follower'),
@@ -158,15 +158,15 @@ export async function openWallet(root, wallet, hooks) {
         h('div', { class: 'ln' }, h('span', {}, 'Missed upside'), h('span', {}, isNum(o.missedUpside) ? `${mult(o.missedUpside)} more was there` : 'n/a')),
         h('div', { class: 'ln' }, h('span', {}, `Your $${x.sizeUsd} copy`), h('span', { class: signClass(o.followerNetUsd) }, o.followerNetUsd != null ? `${usdSigned(o.followerNetUsd)} → ${usd(x.sizeUsd + o.followerNetUsd)}` : o.followerNote || 'n/a'))))));
   } else {
-    page.append(h('p', { class: 'summary-line' }, 'This wallet has not been measured for explosive trades yet. Press "Measure explosive trades": it replays its recent coins on real GMGN prices.'));
+    add(page, h('p', { class: 'summary-line' }, 'This wallet has not been measured for explosive trades yet. Press "Measure explosive trades": it replays its recent coins on real GMGN prices.'));
   }
-  page.append(h('div', { class: 'stats' },
+  add(page, h('div', { class: 'stats' },
     stat(isNum(p.coinsPerActiveDay) ? `${Math.round(p.coinsPerActiveDay * 10) / 10}` : 'n/a', 'coins a day when it trades'),
     stat(`${p.wins} of ${p.closedCount}`, 'finished trades won'),
     stat(usd(p.realizedUsd), 'wallet made in this history (HISTORICAL)', null, signClass(p.realizedUsd)),
     stat(`${Math.round(p.spanDays ?? 0)} days`, 'of history read'),
     p.gmgn30?.returnBuckets ? stat(`${p.gmgn30.returnBuckets.over5x ?? 0}`, 'coins above 5x in 30 days (GMGN)') : null));
-  clear(root).append(page);
+  add(clear(root), page);
 }
 
 function stat(v, k, key = null, cls = '') {

@@ -378,7 +378,7 @@ export class Service {
   async accountView() {
     const a = await this.account().catch((e) => ({ error: e.message }));
     const cfg = this.desk.config();
-    const paused = Math.max(this.g.bucket?.bannedUntil ?? 0, this.gJob?.bucket?.bannedUntil ?? 0);
+    const paused = this.g.bucket?.bannedUntil ?? 0;
     const feeFloat = 1;
     return {
       connected: !a.error,

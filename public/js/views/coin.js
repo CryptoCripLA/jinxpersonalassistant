@@ -1,6 +1,6 @@
 // Coin page: GMGN-style header, chart, five tabs (why it is moving, early buyers, live trades,
 // holders, safety) and the trade column (Buy/Sell with a confirmed quote, $25 scenario, momentum).
-import { h, clear, api, icon, logo, usd, usdShort, usdSigned, priceUsd, pct, pctSigned, mult, short, age, isNum, signClass, label, toast, explainAttrs } from '../core.js';
+import { add, h, clear, api, icon, logo, usd, usdShort, usdSigned, priceUsd, pct, pctSigned, mult, short, age, isNum, signClass, label, toast, explainAttrs } from '../core.js';
 import { CoinChart } from '../chart.js';
 import { checkList } from '../cards.js';
 
@@ -31,12 +31,12 @@ export async function openCoin(root, address, hooks) {
     state.useExit = p.useExitPlan;
     if (state.sideEl) renderSide();
   }).catch(() => {});
-  clear(root).append(h('div', { class: 'page' }, h('div', { class: 'skeleton' }), h('div', { class: 'skeleton' }), h('p', { class: 'faint' }, 'Reading live data from GMGN and pump.fun…')));
+  add(clear(root), h('div', { class: 'page' }, h('div', { class: 'skeleton' }), h('div', { class: 'skeleton' }), h('p', { class: 'faint' }, 'Reading live data from GMGN and pump.fun…')));
   let d;
   try {
     d = await api(`/api/coin/${address}`);
   } catch (e) {
-    clear(root).append(h('div', { class: 'page' }, h('p', {}, `Could not load this coin: ${e.message}`), h('button', { class: 'btn', type: 'button', onclick: () => hooks.back() }, 'Back to Pulse')));
+    add(clear(root), h('div', { class: 'page' }, h('p', {}, `Could not load this coin: ${e.message}`), h('button', { class: 'btn', type: 'button', onclick: () => hooks.back() }, 'Back to Pulse')));
     return;
   }
   if (!state || state.address !== address) return;
@@ -81,7 +81,7 @@ function render(root) {
   state.tabsEl = h('div', { class: 'subtabs', role: 'tablist' });
   state.paneEl = h('div', { class: 'pane' });
   state.sideEl = h('div', { class: 'side' });
-  clear(root).append(h('div', { class: 'coin' },
+  add(clear(root), h('div', { class: 'coin' },
     state.headEl,
     h('div', { class: 'coin-left' },
       h('div', { class: 'chart-bar' },
@@ -97,7 +97,7 @@ function render(root) {
   } catch (e) {
     // a broken chart must never take the trade panel and the data down with it
     state.chart = { set() {}, setMode() {}, destroy() {} };
-    state.chartEl.append(h('div', { class: 'note' }, `Chart unavailable: ${e.message}`));
+    add(state.chartEl, h('div', { class: 'note' }, `Chart unavailable: ${e.message}`));
   }
   renderHead();
   renderTabs();
@@ -114,7 +114,7 @@ function renderHead() {
     h('a', { href: `https://gmgn.ai/sol/token/${d.address}`, target: '_blank', rel: 'noopener noreferrer' }, 'GMGN'),
     d.isPump ? h('a', { href: `https://pump.fun/coin/${d.address}`, target: '_blank', rel: 'noopener noreferrer' }, 'pump.fun') : null,
   ];
-  clear(state.headEl).append(
+  add(clear(state.headEl), 
     h('button', { class: 'btn ghost small', type: 'button', onclick: () => state.hooks.back(), 'aria-label': 'Back to Pulse' }, icon('back')),
     logo(d.logo, d.symbol),
     h('div', { class: 'coin-id' },
@@ -138,7 +138,7 @@ function renderHead() {
 
 const TABS = [['why', 'Why it is moving', 'coin.momentum'], ['early', 'Early buyers', 'tab.early'], ['trades', 'Live trades', 'tab.trades'], ['holders', 'Holders', 'tab.holders'], ['safety', 'Safety', 'coin.safety']];
 function renderTabs() {
-  clear(state.tabsEl).append(...TABS.map(([k, l, key]) => h('button', { type: 'button', role: 'tab', 'aria-selected': String(state.tab === k), 'data-explain': key, onclick: () => selectTab(k) }, l)));
+  add(clear(state.tabsEl), ...TABS.map(([k, l, key]) => h('button', { type: 'button', role: 'tab', 'aria-selected': String(state.tab === k), 'data-explain': key, onclick: () => selectTab(k) }, l)));
 }
 
 export function selectTab(k) {
@@ -157,7 +157,7 @@ function renderTab() {
   const p = clear(state.paneEl);
   if (state.tab === 'why') {
     const m = d.momentum;
-    p.append(
+    add(p, 
       h('p', { class: 'summary-line' }, `Stage `, h('b', { class: `stage ${m.stage}` }, m.stage), `. Momentum ${m.score}/100 from live flow (${d.rates?.source ?? 'GMGN running totals'}).`),
       d.checks ? h('div', { style: { margin: '6px 0 12px' } }, h('p', { class: d.checks.pass ? 'up' : 'down', style: { fontSize: '13px', fontWeight: 600, marginBottom: '4px' } }, d.checks.pass ? `Passes the hard filters (${d.checks.passed} of ${d.checks.checks.length} checks green).` : 'Fails a hard filter: I would not buy this.'), checkList(d.checks)) : null,
       h('ul', { class: 'reasons' }, m.reasons.map((r) => h('li', {}, r)), m.warnings.map((w) => h('li', { class: 'risk' }, w))),
@@ -174,12 +174,12 @@ function renderTab() {
         ['Why is this coin pumping?', 'Could this coin realistically reach 10x from here?', "What's X saying about this coin?"].map((q) => h('button', { class: 'btn small', type: 'button', onclick: () => state.hooks.ask(q) }, q))));
   } else if (state.tab === 'early') {
     const e = d.early;
-    p.append(h('p', { class: 'summary-line' }, e.summary?.text ?? '', ' ', h('span', { class: 'faint' }, `Source: ${e.source}${e.note ? `. ${e.note}` : ''}`), ' ', label('LIVE')));
+    add(p, h('p', { class: 'summary-line' }, e.summary?.text ?? '', ' ', h('span', { class: 'faint' }, `Source: ${e.source}${e.note ? `. ${e.note}` : ''}`), ' ', label('LIVE')));
     if (!e.buyers.length) {
-      p.append(h('p', { class: 'empty' }, 'No buyer list is available for this coin right now.'));
+      add(p, h('p', { class: 'empty' }, 'No buyer list is available for this coin right now.'));
       return;
     }
-    p.append(h('table', { class: 'grid' },
+    add(p, h('table', { class: 'grid' },
       h('thead', {}, h('tr', {}, h('th', {}, '#'), h('th', {}, 'Wallet'), h('th', { class: 'n' }, 'After launch'), h('th', { class: 'n', ...explainAttrs('early.entry') }, 'Entry market cap'), h('th', { class: 'n' }, 'Spent'), h('th', { class: 'n', ...explainAttrs('early.multiple') }, 'Multiple now'), h('th', { class: 'n' }, 'Sold at'), h('th', { class: 'n', ...explainAttrs('early.held') }, 'Holding'), h('th', { class: 'n' }, 'Profit'))),
       h('tbody', {}, e.buyers.slice(0, 40).map((b) => h('tr', {},
         h('td', { class: 'faint' }, b.rank),
@@ -192,12 +192,12 @@ function renderTab() {
         h('td', { class: 'n' }, b.stillHolding ? pct(b.heldShare ?? 1) : h('span', { class: 'faint' }, 'sold out')),
         h('td', { class: `n ${signClass(b.profitUsd)}` }, usdSigned(b.profitUsd)))))));
   } else if (state.tab === 'trades') {
-    p.append(h('p', { class: 'summary-line' }, d.isPump ? 'Every buy and sell as it happens (pump.fun stream). Gold rows are wallets from your explosive list.' : 'The live trade stream covers pump.fun coins; this coin trades elsewhere.', ' ', label('LIVE')));
+    add(p, h('p', { class: 'summary-line' }, d.isPump ? 'Every buy and sell as it happens (pump.fun stream). Gold rows are wallets from your explosive list.' : 'The live trade stream covers pump.fun coins; this coin trades elsewhere.', ' ', label('LIVE')));
     state.tradeBody = h('tbody', {});
-    p.append(h('table', { class: 'grid' }, h('thead', {}, h('tr', {}, h('th', {}, 'Time'), h('th', {}, 'Side'), h('th', {}, 'Wallet'), h('th', { class: 'n' }, 'Amount'), h('th', { class: 'n' }, 'Market cap'))), state.tradeBody));
+    add(p, h('table', { class: 'grid' }, h('thead', {}, h('tr', {}, h('th', {}, 'Time'), h('th', {}, 'Side'), h('th', {}, 'Wallet'), h('th', { class: 'n' }, 'Amount'), h('th', { class: 'n' }, 'Market cap'))), state.tradeBody));
     drawTrades();
   } else if (state.tab === 'holders') {
-    p.append(h('table', { class: 'grid' },
+    add(p, h('table', { class: 'grid' },
       h('thead', {}, h('tr', {}, h('th', {}, 'Wallet'), h('th', { class: 'n' }, 'Share'), h('th', { class: 'n' }, 'Value'), h('th', {}, 'Tags'))),
       h('tbody', {}, d.holders.map((x) => h('tr', {},
         h('td', {}, x.isPool ? h('span', { class: 'faint' }, `${short(x.wallet)} (pool or exchange)`) : walletCell({ wallet: x.wallet, explosive: x.explosive })),
@@ -207,8 +207,8 @@ function renderTab() {
   } else if (state.tab === 'safety') {
     const s = d.safety;
     const row = (k, v, bad) => [h('span', { class: 'k' }, k), h('span', { class: bad ? 'down' : '' }, v)];
-    if (d.checks) p.append(h('div', { style: { marginBottom: '14px' } }, checkList(d.checks)));
-    p.append(h('div', { class: 'safety', style: { maxWidth: '560px' }, ...explainAttrs('coin.safety') },
+    if (d.checks) add(p, h('div', { style: { marginBottom: '14px' } }, checkList(d.checks)));
+    add(p, h('div', { class: 'safety', style: { maxWidth: '560px' }, ...explainAttrs('coin.safety') },
       row('Rug-pull risk', pct(s.rugRatio), s.rugRatio > 0.3),
       row('Creator sold', s.devSold ? 'yes' : 'no', false),
       row("Creator's team holds", pct(s.devTeamHold, 1), s.devTeamHold > 0.05),
@@ -240,13 +240,13 @@ function drawTrades() {
   if (!state?.tradeBody) return;
   const body = clear(state.tradeBody);
   if (!state.trades.length) {
-    body.append(h('tr', {}, h('td', { colspan: '5', class: 'faint' }, 'Waiting for the next trade…')));
+    add(body, h('tr', {}, h('td', { colspan: '5', class: 'faint' }, 'Waiting for the next trade…')));
     return;
   }
   for (const t of state.trades) {
     const amt = usdPerSol ? t.solAmount * usdPerSol : null;
     const mc = usdPerSol && t.marketCapSol ? t.marketCapSol * usdPerSol : null;
-    body.append(h('tr', { style: t.followed ? { background: 'var(--gold-wash)' } : null },
+    add(body, h('tr', { style: t.followed ? { background: 'var(--gold-wash)' } : null },
       h('td', { class: 'faint' }, new Date(t.at).toLocaleTimeString()),
       h('td', { class: t.side === 'buy' ? 'up' : 'down' }, t.side === 'buy' ? 'Buy' : 'Sell'),
       h('td', {}, walletCell({ wallet: t.wallet, explosive: t.followed })),
@@ -259,9 +259,9 @@ function drawTrades() {
 function renderSide() {
   const d = state.d;
   const side = clear(state.sideEl);
-  side.append(tradeBlock(), scenarioBlock(d), momentumBlock(d));
+  add(side, tradeBlock(), scenarioBlock(d), momentumBlock(d));
   if (d.explosiveIn.length) {
-    side.append(h('div', { class: 'block' }, h('h3', { ...explainAttrs('row.explosive', d.explosiveIn.length) }, 'Your explosive wallets in this coin'),
+    add(side, h('div', { class: 'block' }, h('h3', { ...explainAttrs('row.explosive', d.explosiveIn.length) }, 'Your explosive wallets in this coin'),
       h('ul', { class: 'list' }, d.explosiveIn.map((w) => h('li', {}, walletCell({ wallet: w.wallet, explosive: true, explosiveName: w.name }), h('span', { class: 'faint' }, `in at ${usdShort(w.entryMcapUsd)}`), h('span', {}, w.stillHolding ? 'holding' : 'sold'))))));
   }
 }
@@ -297,7 +297,7 @@ function tradeBlock() {
       getPrice.disabled = false;
     }
   });
-  box.append(
+  add(box, 
     h('div', { class: 'trade-tabs', role: 'group', 'aria-label': 'Buy or sell' },
       h('button', { class: 'b', type: 'button', 'aria-pressed': String(isBuy), onclick: () => { state.side = 'buy'; state.quote = null; renderSide(); } }, 'Buy'),
       h('button', { class: 's', type: 'button', 'aria-pressed': String(!isBuy), onclick: () => { state.side = 'sell'; state.quote = null; renderSide(); } }, 'Sell')),
@@ -324,7 +324,7 @@ function showQuote(box, status) {
     : [['You sell', `${q.sellPct}% (${Math.round(q.sellTokens).toLocaleString('en-US')} coins)`], ['You get about', usd(q.receiveUsd)], ['Worst fill you accept', usd(q.minReceiveUsd)]];
   lines.push(['Network fee and tip', `about ${usd(q.tipUsd)} (${q.tip === 'fast' ? 'fast' : 'normal'})`]);
   if (q.exitText) lines.push(['Exit orders placed with it', q.exitText]);
-  clear(box).append(h('div', { class: 'quote', ...explainAttrs('trade.quote') }, lines.map(([k, v]) => h('div', { class: 'ln' }, h('span', {}, k), h('span', {}, v))), h('div', { class: 'ln' }, label('LIVE'), timer), confirm));
+  add(clear(box), h('div', { class: 'quote', ...explainAttrs('trade.quote') }, lines.map(([k, v]) => h('div', { class: 'ln' }, h('span', {}, k), h('span', {}, v))), h('div', { class: 'ln' }, label('LIVE'), timer), confirm));
   const tick = () => {
     const left = Math.round((q.expiresAt - Date.now()) / 1000);
     if (left <= 0) {
