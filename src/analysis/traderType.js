@@ -56,11 +56,16 @@ export function classifyTrader(p) {
 
 // fits | close | no, with every reason in a sentence. "no" reasons are deal-breakers for copying.
 export function styleFit(row, p, prefs) {
-  const reasons = [];
+  const blockers = [];
+  const minor = [];
   const good = [];
   let level = 'fits';
-  const worse = (l) => {
+  // deal-breakers are kept apart so they always lead: the first reason must explain a skip
+  const flag = (l, text, { first = false } = {}) => {
     if (l === 'no' || (l === 'close' && level === 'fits')) level = l;
+    const list = l === 'no' ? blockers : minor;
+    if (first) list.unshift(text);
+    else list.push(text);
   };
   const cpd = row.coinsPerActiveDay ?? p.coinsPerActiveDay;
   const hold = row.medianHoldSec ?? p.medianHoldSec;
@@ -68,49 +73,41 @@ export function styleFit(row, p, prefs) {
   const { minCoinsPerDay: lo, maxCoinsPerDay: hi, maxHoldSec } = prefs;
   if (isNum(cpd)) {
     if (cpd > hi * 2 || cpd < lo / 2) {
-      worse('no');
-      reasons.push(`Buys about ${oneDec(cpd)} coins a day; you want ${lo} to ${hi}. Copying it means taking the coins it picks, not the few you would.`);
+      flag('no', `Buys about ${oneDec(cpd)} coins a day; you want ${lo} to ${hi}. Copying it means taking the coins it picks, not the few you would.`);
     } else if (cpd > hi || cpd < lo) {
-      worse('close');
-      reasons.push(`Buys about ${oneDec(cpd)} coins a day, a bit ${cpd > hi ? 'more' : 'less'} than your ${lo} to ${hi}.`);
+      flag('close', `Buys about ${oneDec(cpd)} coins a day, a bit ${cpd > hi ? 'more' : 'less'} than your ${lo} to ${hi}.`);
     } else good.push(`Buys about ${oneDec(cpd)} coins a day, inside your ${lo} to ${hi}.`);
   }
   if (isNum(hold)) {
     if (hold < 300) {
-      worse('no');
-      reasons.push(`Usually sells within ${duration(hold)}: faster than a copy can follow.`);
+      flag('no', `Usually sells within ${duration(hold)}: faster than a copy can follow.`);
     } else if (hold > maxHoldSec * 2) {
-      worse('no');
-      reasons.push(`Usually holds ${duration(hold)}, far longer than your ${duration(maxHoldSec)}.`);
+      flag('no', `Usually holds ${duration(hold)}, far longer than your ${duration(maxHoldSec)}.`);
     } else if (hold > maxHoldSec) {
-      worse('close');
-      reasons.push(`Usually holds ${duration(hold)}, longer than your ${duration(maxHoldSec)}.`);
+      flag('close', `Usually holds ${duration(hold)}, longer than your ${duration(maxHoldSec)}.`);
     } else good.push(`Usually sells within ${duration(hold)}.`);
   }
   const untrusted = !replayTrusted({ explosive: ex, medianHoldSec: hold });
   if (untrusted) {
-    worse('no');
     // first: it decides how every other number about this wallet should be read
-    reasons.unshift(`Its copy result cannot be trusted: it flips in about ${duration(hold)}, and the replay on 30-second prices shows copiers beating the wallet itself (${Math.round(ex.edgeKeptPct)}% of its edge), which does not happen in real trading.`);
+    flag('no', `Its copy result cannot be trusted: it flips in about ${duration(hold)}, and the replay on 30-second prices shows copiers beating the wallet itself (${Math.round(ex.edgeKeptPct)}% of its edge), which does not happen in real trading.`, { first: true });
   }
   for (const f of row.flags ?? []) {
-    if (f === 'DISTRIBUTOR') { worse('no'); reasons.push('Sells far more often than it buys: it looks like it is unloading coins it got elsewhere.'); }
-    if (f === 'HIGH_WINRATE_SUS') { worse('no'); reasons.push('Wins over 90% of 20+ trades: often farmed or faked.'); }
-    if (f === 'DORMANT') { worse('no'); reasons.push('Has not traded in over two weeks.'); }
+    if (f === 'DISTRIBUTOR') flag('no', 'Sells far more often than it buys: it looks like it is unloading coins it got elsewhere.');
+    if (f === 'HIGH_WINRATE_SUS') flag('no', 'Wins over 90% of 20+ trades: often farmed or faked.');
+    if (f === 'DORMANT') flag('no', 'Has not traded in over two weeks.');
   }
   const copied = ex.copiedTrades ?? ex.trades ?? 0;
   if (copied < 5) {
-    worse('no');
-    reasons.push(`Only ${copied} copied trade${copied === 1 ? '' : 's'} in the last two weeks to judge it by.`);
+    flag('no', `Only ${copied} copied trade${copied === 1 ? '' : 's'} in the last two weeks to judge it by.`);
   }
   if (isNum(ex.followerNetUsd)) {
     if (ex.followerNetUsd <= 0) {
-      worse('no');
-      reasons.push(`Copying it would have lost ${usd(-ex.followerNetUsd)} over its last ${copied} trades, after fees and delay.`);
+      flag('no', `Copying it would have lost ${usd(-ex.followerNetUsd)} over its last ${copied} trades, after fees and delay.`);
     } else if (!untrusted) good.push(`Your copies of its last ${copied} trades would have made ${usd(ex.followerNetUsd)} after fees and a few seconds of delay.`);
   }
   if (isNum(ex.edgeKeptPct) && ex.edgeKeptPct > 0 && ex.edgeKeptPct <= 100) good.push(`A follower kept about ${Math.round(ex.edgeKeptPct)}% of its edge after the copy delay.`);
-  return { level, reasons, good, untrusted };
+  return { level, reasons: [...blockers, ...minor], good, untrusted };
 }
 
 export function describeBehavior(p, { nowSec = Math.floor(Date.now() / 1000) } = {}) {

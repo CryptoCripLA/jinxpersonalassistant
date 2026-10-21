@@ -47,6 +47,14 @@ test('style fit catches the contradictions instead of leaving them in a table', 
   assert.equal(thin.level, 'no');
 });
 
+test('deal-breakers are listed before small differences, so the first reason explains the skip', () => {
+  // live 2026-10-21: a +$453 wallet was shown skipped for "a bit more than your 1 to 3"
+  const f = styleFit(row({ coinsPerActiveDay: 3.3, medianHoldSec: 32 }), profile({ coinsPerActiveDay: 3.3, medianHoldSec: 32 }), prefs);
+  assert.equal(f.level, 'no');
+  assert.match(f.reasons[0], /faster than a copy can follow/);
+  assert.match(f.reasons[1], /a bit more than your 1 to 3/);
+});
+
 test('behavior is described in plain words with the numbers behind it', () => {
   const b = describeBehavior(profile(), { nowSec: 1_000_000 + 720 });
   assert.match(b.buys, /2 coins a day/);
