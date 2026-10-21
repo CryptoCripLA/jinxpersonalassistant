@@ -32,7 +32,10 @@ export function classifyTrader(p) {
     plain = `Trades about ${roundNice(cpd)} coins a day and usually sells within ${duration(hold)}: machine speed, not something a person can copy.`;
   } else if ((sm.snipe ?? 0) >= 0.4 || (isNum(age) && age < 60)) {
     type = 'sniper';
-    plain = `Buys ${pct(sm.snipe ?? 0, 0)} of its coins in the first minute after launch${at}. It races bots for the launch.`;
+    // the type can come from the snipe share or from launch timing alone; describe whichever it was
+    plain = (sm.snipe ?? 0) >= 0.4
+      ? `Buys ${pct(sm.snipe, 0)} of its coins in the first minute after launch${at}. It races bots for the launch.`
+      : `Usually buys within ${duration(age)} of launch${at}. It races bots for the launch.`;
   } else if ((sm.early ?? 0) >= 0.4) {
     type = isNum(mcap) && mcap >= 25_000 ? 'pregrad' : 'early';
     plain = type === 'early'

@@ -24,6 +24,15 @@ test('trader types come from where and when they buy', () => {
   assert.match(c.plain, /90% of its coins after they graduated/);
 });
 
+test('a sniper picked by its launch timing is described by that timing, never as "0% in the first minute"', () => {
+  // live 2026-10-21: median entry 25 s after launch, but GMGN tagged none of its buys as snipes
+  const c = classifyTrader(profile({ stageMix: { snipe: 0, early: 0.9, graduated: 0.1 }, entryAgeSec: { p50: 25 }, entryMcap: { p50: 7_000 } }));
+  assert.equal(c.type, 'sniper');
+  assert.doesNotMatch(c.plain, /\b0%/);
+  assert.match(c.plain, /within 25 seconds of launch/);
+  assert.match(c.plain, /\$7K/);
+});
+
 test('style fit catches the contradictions instead of leaving them in a table', () => {
   assert.equal(styleFit(row(), profile(), prefs).level, 'fits');
   const busy = styleFit(row({ coinsPerActiveDay: 18.3 }), profile({ coinsPerActiveDay: 18.3 }), prefs);
